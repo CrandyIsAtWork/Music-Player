@@ -170,8 +170,6 @@
     const searchResultsElement = document.getElementById('search-results');
     const searchBar = document.getElementById('search-bar');
     const tabButtons = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
-    // New Custom Control Elements
     const playPauseBtn = document.getElementById('play-pause-btn');
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
@@ -190,7 +188,6 @@
     let isShuffled = false;
     let repeatState = 'none'; // 'none', 'all', 'one'
 
-    // --- INITIALIZATION ---
     async function initializePlayer() {
         applyTheme(localStorage.getItem('theme') || 'light');
         await fetchMasterLibrary();
@@ -200,8 +197,8 @@
         setupEventListeners();
     }
 
-    // --- DATA FETCHING & MANAGEMENT (No changes here) ---
     async function fetchMasterLibrary() {
+        const libraryLoading = document.getElementById('library-loading');
         const apiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${MUSIC_FOLDER_PATH}`;
         try {
             const response = await fetch(apiUrl);
@@ -210,15 +207,15 @@
             const allowedExtensions = ['.mp3', '.flac', 'm4a', '.wav', '.ogg', '.oga'];
             const audioFiles = files.filter(file => allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext)));
             if (audioFiles.length === 0) {
-                 document.getElementById('library-loading').textContent = 'No audio files found.';
+                 libraryLoading.textContent = 'No audio files found.';
                  return;
             }
             const songPromises = audioFiles.map(file => getSongMetadata(file));
             masterLibrary = await Promise.all(songPromises);
-            document.getElementById('library-loading').style.display = 'none';
+            libraryLoading.style.display = 'none';
         } catch (error) {
             console.error('Failed to fetch library:', error);
-            document.getElementById('library-loading').textContent = 'Error loading library.';
+            libraryLoading.textContent = 'Error loading library.';
         }
     }
 
@@ -250,7 +247,6 @@
         });
     }
     
-    // --- PLAYLIST MANAGEMENT (No changes here) ---
     function addSongToPlaylist(songUrl) {
         const songToAdd = masterLibrary.find(song => song.url === songUrl);
         const isAlreadyInPlaylist = playlist.some(song => song.url === songUrl);
@@ -285,16 +281,15 @@
         localStorage.setItem('userPlaylist', JSON.stringify(playlist));
     }
     
-    // --- UI RENDERING (No major changes here) ---
+    // ⭐ FIX #1: The playlist rendering logic is now more robust.
     function renderPlaylist() {
-        const loadingEl = document.getElementById('playlist-loading');
-        playlistElement.innerHTML = '';
+        playlistElement.innerHTML = ''; // Clear the list first
         if (playlist.length === 0) {
-            playlistElement.appendChild(loadingEl);
-            loadingEl.style.display = 'block';
+            // Directly insert the message instead of trying to manage a separate element
+            playlistElement.innerHTML = `<div id="playlist-loading">Your playlist is empty.</div>`;
             return;
         }
-        loadingEl.style.display = 'none';
+
         playlist.forEach((song, index) => {
             const listItem = document.createElement('li');
             listItem.dataset.index = index;
@@ -310,8 +305,17 @@
         });
         updateActivePlaylistItem();
     }
+    
     function renderSearchResults(results) {
+        const libraryLoading = document.getElementById('library-loading');
         searchResultsElement.innerHTML = '';
+        if (results.length === 0 && masterLibrary.length > 0) {
+            searchResultsElement.innerHTML = `<div id="library-loading">No songs match your search.</div>`;
+            return;
+        }
+        // If the main library is still loading, the initial message will show.
+        if (libraryLoading) libraryLoading.style.display = 'none';
+
         results.forEach(song => {
             const listItem = document.createElement('li');
             listItem.innerHTML = `
@@ -326,7 +330,6 @@
         });
     }
 
-    // --- CORE PLAYER LOGIC ---
     function playSong(index) {
         if (index < 0 || index >= playlist.length) return;
         currentSongIndex = index;
@@ -345,31 +348,25 @@
         });
     }
     
-    // NEW: Function to update the play/pause button icon
     function updatePlayPauseIcon(isPlaying) {
         playPauseBtn.textContent = isPlaying ? '⏸️' : '▶️';
     }
 
-    // NEW: Function to format time from seconds to M:SS
     function formatTime(seconds) {
         const minutes = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
     }
 
-    // NEW: Function to update the progress bar and time display
     function updateProgress() {
         const { duration, currentTime } = audioPlayer;
+        if (isNaN(duration)) return;
         const progressPercent = (currentTime / duration) * 100;
         progressBar.style.width = `${progressPercent}%`;
         currentTimeEl.textContent = formatTime(currentTime);
-        // Only update total duration if it's a valid number
-        if (!isNaN(duration)) {
-            totalDurationEl.textContent = formatTime(duration);
-        }
+        totalDurationEl.textContent = formatTime(duration);
     }
     
-    // NEW: Function to set the progress when user clicks/drags
     function setProgress(e) {
         const width = progressContainer.clientWidth;
         const clickX = e.offsetX;
@@ -379,19 +376,16 @@
         }
     }
 
-    // --- EVENT LISTENERS ---
     function setupEventListeners() {
-        // Player Controls
         playPauseBtn.addEventListener('click', () => {
-            const isPlaying = !audioPlayer.paused;
-            if (isPlaying) {
-                audioPlayer.pause();
-            } else {
-                if(currentSongIndex === -1 && playlist.length > 0){
-                    playSong(0); // If no song is selected, play the first one
+            if (audioPlayer.paused) {
+                if (currentSongIndex === -1 && playlist.length > 0) {
+                    playSong(0);
                 } else {
                     audioPlayer.play();
                 }
+            } else {
+                audioPlayer.pause();
             }
         });
         
@@ -400,16 +394,13 @@
         shuffleBtn.addEventListener('click', toggleShuffle);
         repeatBtn.addEventListener('click', toggleRepeat);
 
-        // Audio Element Events
         audioPlayer.addEventListener('play', () => updatePlayPauseIcon(true));
         audioPlayer.addEventListener('pause', () => updatePlayPauseIcon(false));
         audioPlayer.addEventListener('timeupdate', updateProgress);
         audioPlayer.addEventListener('ended', handleSongEnd);
         
-        // Progress Bar Events
         progressContainer.addEventListener('click', setProgress);
 
-        // Existing Listeners
         darkModeToggle.addEventListener('click', () => {
             const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
             applyTheme(newTheme);
@@ -441,7 +432,6 @@
         initializeSortable();
     }
     
-    // --- CONTROL LOGIC (Shuffle, Repeat, Next/Prev) ---
     function playNext() {
         if (playlist.length === 0) return;
         const nextIndex = (currentSongIndex + 1) % playlist.length;
@@ -456,7 +446,7 @@
         if (repeatState === 'one') {
             playSong(currentSongIndex);
         } else if (currentSongIndex === playlist.length - 1 && repeatState === 'none') {
-            updatePlayPauseIcon(false); // Song ended, show play icon
+            updatePlayPauseIcon(false);
         } else {
             playNext();
         }
@@ -467,34 +457,42 @@
         const currentSong = playlist[currentSongIndex];
         if (isShuffled) {
             originalPlaylist = [...playlist];
-            // Shuffle array but keep current song at the same index if possible
             const otherSongs = playlist.filter((_, i) => i !== currentSongIndex);
             for (let i = otherSongs.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [otherSongs[i], otherSongs[j]] = [otherSongs[j], otherSongs[i]];
             }
-            playlist = [...otherSongs.slice(0, currentSongIndex), currentSong, ...otherSongs.slice(currentSongIndex)];
+            playlist = currentSongIndex !== -1 ? [...otherSongs.slice(0, currentSongIndex), currentSong, ...otherSongs.slice(currentSongIndex)] : otherSongs;
         } else {
             playlist = [...originalPlaylist];
-            currentSongIndex = playlist.findIndex(s => s.url === currentSong.url);
+            if(currentSong) {
+                currentSongIndex = playlist.findIndex(s => s.url === currentSong.url);
+            }
         }
         renderPlaylist();
         updateActivePlaylistItem();
     }
-    function toggleRepeat(){
+    
+    // ⭐ FIX #2: The repeat button logic is now clearer.
+    function toggleRepeat() {
         if (repeatState === 'none') {
             repeatState = 'all';
+            // State: Repeat All (Active color, repeat icon)
             repeatBtn.classList.add('active');
             repeatBtn.textContent = '🔁';
         } else if (repeatState === 'all') {
             repeatState = 'one';
+            // State: Repeat One (Active color, repeat-one icon)
+            repeatBtn.classList.add('active'); 
             repeatBtn.textContent = '🔂';
-        } else {
+        } else { // repeatState is 'one'
             repeatState = 'none';
+            // State: Repeat Off (Inactive color, repeat icon)
             repeatBtn.classList.remove('active');
             repeatBtn.textContent = '🔁';
         }
     }
+
     function applyTheme(theme) {
         document.body.classList.toggle('dark-mode', theme === 'dark');
         darkModeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
@@ -520,7 +518,6 @@
         });
     }
 
-    // Start the player
     initializePlayer();
 </script>
 
