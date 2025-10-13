@@ -11,43 +11,95 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f0f2f5; padding: 20px; color: #1c1e21; }
-        #player-container { max-width: 450px; margin: auto; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); text-align: center; }
-        h1 { color: #1877f2; margin-bottom: 20px; }
+        /* STEP 1: CSS Variables for Theming */
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #1c1e21;
+            --text-secondary: #606770;
+            --primary-color: #1877f2;
+            --hover-bg: #e4e6eb;
+            --active-bg: #e7f3ff;
+            --border-color: #ddd;
+            --shadow-color: rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode {
+            --bg-color: #18191a;
+            --card-bg: #242526;
+            --text-color: #e4e6eb;
+            --text-secondary: #b0b3b8;
+            --primary-color: #2d88ff;
+            --hover-bg: #3a3b3c;
+            --active-bg: #3a3b3c;
+            --border-color: #3e4042;
+            --shadow-color: rgba(0,0,0,0.3);
+        }
+        /* End of Theming Variables */
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            line-height: 1.6; 
+            background-color: var(--bg-color); 
+            padding: 20px; 
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        #player-container { 
+            max-width: 450px; 
+            margin: auto; 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border-radius: 16px; 
+            box-shadow: 0 8px 24px var(--shadow-color); 
+            text-align: center;
+            transition: background-color 0.3s;
+        }
         
-        #album-cover { width: 80%; max-width: 300px; height: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 20px; aspect-ratio: 1 / 1; object-fit: cover; background-color: #e9e9e9; }
+        /* NEW: Header for title and theme toggle */
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        h1 { margin: 0; font-size: 1.5em; color: var(--primary-color); }
+        #dark-mode-toggle { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); }
+
+        #album-cover { width: 80%; max-width: 300px; height: auto; border-radius: 12px; box-shadow: 0 4px 12px var(--shadow-color); margin-bottom: 20px; aspect-ratio: 1 / 1; object-fit: cover; background-color: var(--hover-bg); }
         
         #song-info { margin-bottom: 15px; min-height: 80px; }
-        #song-title { font-size: 1.4em; font-weight: bold; color: #1c1e21; margin: 0; }
-        #song-artist { font-size: 1em; color: #606770; margin: 5px 0 0; }
+        #song-title { font-size: 1.4em; font-weight: bold; color: var(--text-color); margin: 0; }
+        #song-artist { font-size: 1em; color: var(--text-secondary); margin: 5px 0 0; }
         #song-album { font-size: 0.9em; color: #8a8d91; margin: 5px 0 0; }
 
-        #player-controls { display: flex; justify-content: center; align-items: center; gap: 20px; margin: 20px 0; }
-        .control-btn { background: none; border: none; font-size: 2em; cursor: pointer; color: #333; transition: color 0.2s; }
-        .control-btn:hover { color: #1877f2; }
+        #player-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; }
+        .control-btn { background: none; border: none; font-size: 1.8em; cursor: pointer; color: var(--text-secondary); transition: color 0.2s; }
+        .control-btn:hover { color: var(--primary-color); }
+        .control-btn.active { color: var(--primary-color); } /* Style for active shuffle/repeat */
 
         audio { width: 100%; border-radius: 999px; }
-        h2 { text-align: center; color: #1877f2; font-size: 1.2em; border-top: 1px solid #ddd; padding-top: 20px; margin-top: 20px; }
+        h2 { text-align: center; color: var(--primary-color); font-size: 1.2em; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px; }
         
-        /* NEW: Styles for the playlist with images */
         #playlist { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; text-align: left; }
-        #playlist li { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; cursor: grab; user-select: none; }
-        #playlist li:active { cursor: grabbing; }
-        #playlist li:hover { background-color: #f0f2f5; }
+        #playlist li { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid var(--border-color); cursor: grab; user-select: none; transition: background-color 0.2s; }
+        #playlist li:hover { background-color: var(--hover-bg); }
         #playlist li img { width: 45px; height: 45px; border-radius: 6px; object-fit: cover; }
         #playlist li .playlist-song-title { font-weight: 500; }
-        #playlist li.active { background-color: #e7f3ff; font-weight: bold; color: #1877f2; }
-        
-        /* Style for the ghost item while dragging */
-        .sortable-ghost { background-color: #d1eaff; opacity: 0.7; }
+        #playlist li.active { background-color: var(--active-bg); color: var(--primary-color); }
+        .sortable-ghost { background-color: var(--primary-color); opacity: 0.5; }
 
-        #loading { text-align: center; padding: 20px; color: #606770; }
+        #loading { text-align: center; padding: 20px; color: var(--text-secondary); }
     </style>
 </head>
 <body>
 
 <div id="player-container">
-    <h1>My Music Player 💿</h1>
+    <div class="player-header">
+        <h1>My Music Player 💿</h1>
+        <button id="dark-mode-toggle">☀️</button>
+    </div>
+
     <img id="album-cover" src="images/placeholder.png" alt="Album Cover">
     <div id="song-info">
         <p id="song-title">Select a song</p>
@@ -56,8 +108,10 @@
     </div>
     <audio id="audio-player" controls></audio>
     <div id="player-controls">
+        <button id="shuffle-btn" class="control-btn">🔀</button>
         <button id="prev-btn" class="control-btn">⏮️</button>
         <button id="next-btn" class="control-btn">⏭️</button>
+        <button id="repeat-btn" class="control-btn">🔁</button>
     </div>
     <h2>Playlist</h2>
     <ul id="playlist">
@@ -82,11 +136,89 @@
     const songAlbumElement = document.getElementById('song-album');
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
+    // NEW: Get references to new buttons
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const shuffleBtn = document.getElementById('shuffle-btn');
+    const repeatBtn = document.getElementById('repeat-btn');
 
     let songs = [];
+    let originalSongs = []; // To restore from shuffle
     let currentSongIndex = -1;
 
-    // This function now pre-loads all metadata for the entire playlist
+    // NEW: State variables for new features
+    let isShuffled = false;
+    let repeatState = 'none'; // Possible states: 'none', 'all', 'one'
+
+    // --- DARK MODE LOGIC ---
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            document.body.classList.add('dark-mode');
+            darkModeToggle.textContent = '🌙';
+        } else {
+            document.body.classList.remove('dark-mode');
+            darkModeToggle.textContent = '☀️';
+        }
+    }
+    darkModeToggle.addEventListener('click', () => {
+        const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+        applyTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+    // Check for saved theme on page load
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+
+
+    // --- SHUFFLE LOGIC ---
+    shuffleBtn.addEventListener('click', () => {
+        isShuffled = !isShuffled;
+        shuffleBtn.classList.toggle('active', isShuffled);
+
+        if (isShuffled) {
+            shufflePlaylist();
+        } else {
+            // Restore original order and find current song
+            const currentSongUrl = songs[currentSongIndex].url;
+            songs = [...originalSongs];
+            currentSongIndex = songs.findIndex(song => song.url === currentSongUrl);
+        }
+        // Re-render the UI to show the new order
+        createPlaylistUI();
+        updateActivePlaylistItem();
+    });
+
+    function shufflePlaylist() {
+        let currentSong = songs[currentSongIndex];
+        // Fisher-Yates shuffle algorithm
+        for (let i = songs.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [songs[i], songs[j]] = [songs[j], songs[i]];
+        }
+        // Put the current song back at the top to avoid interruption
+        const nowPlayingIndex = songs.findIndex(song => song.url === currentSong.url);
+        if (nowPlayingIndex !== -1) {
+            [songs[0], songs[nowPlayingIndex]] = [songs[nowPlayingIndex], songs[0]];
+            currentSongIndex = 0;
+        }
+    }
+
+    // --- REPEAT LOGIC ---
+    repeatBtn.addEventListener('click', () => {
+        if (repeatState === 'none') {
+            repeatState = 'all';
+            repeatBtn.classList.add('active');
+            repeatBtn.textContent = '🔁'; // Stays the same, but active color shows it's on
+        } else if (repeatState === 'all') {
+            repeatState = 'one';
+            repeatBtn.classList.add('active');
+            repeatBtn.textContent = '🔂'; // Change icon for "repeat one"
+        } else { // repeatState === 'one'
+            repeatState = 'none';
+            repeatBtn.classList.remove('active');
+            repeatBtn.textContent = '🔁';
+        }
+    });
+
     async function fetchPlaylist() {
         const apiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${MUSIC_FOLDER_PATH}`;
         try {
@@ -100,11 +232,9 @@
                  return;
             }
 
-            // Create a promise for each song's metadata fetch
             const songPromises = mp3Files.map(file => getSongMetadata(file));
-            
-            // Wait for all promises to resolve
             songs = await Promise.all(songPromises);
+            originalSongs = [...songs]; // Keep a copy of the original order
 
             loadingElement.style.display = 'none';
             createPlaylistUI();
@@ -116,7 +246,6 @@
         }
     }
 
-    // Helper function to get metadata for a single song
     function getSongMetadata(file) {
         return new Promise((resolve) => {
             const songUrl = new URL(file.path, window.location.href).href;
@@ -127,62 +256,43 @@
                     if (tags.picture) {
                         const { data, format } = tags.picture;
                         let base64String = "";
-                        for (let i = 0; i < data.length; i++) {
-                            base64String += String.fromCharCode(data[i]);
-                        }
+                        for (let i = 0; i < data.length; i++) { base64String += String.fromCharCode(data[i]); }
                         cover = `data:${format};base64,${window.btoa(base64String)}`;
                     }
-                    resolve({
-                        title: tags.title || file.name.replace('.mp3', '').replace(/_/g, ' '),
-                        artist: tags.artist || 'Unknown Artist',
-                        album: tags.album || 'Unknown Album',
-                        cover: cover,
-                        url: file.path
-                    });
+                    resolve({ title: tags.title || file.name.replace('.mp3', ''), artist: tags.artist || 'Unknown Artist', album: tags.album || 'Unknown Album', cover: cover, url: file.path });
                 },
                 onError: (error) => {
-                    console.warn(`Could not read tags for ${file.name}:`, error);
-                    resolve({ // Resolve with default data on error
-                        title: file.name.replace('.mp3', '').replace(/_/g, ' '),
-                        artist: 'Metadata not found',
-                        album: '',
-                        cover: PLACEHOLDER_IMG,
-                        url: file.path
-                    });
+                    resolve({ title: file.name.replace('.mp3', ''), artist: 'Metadata not found', album: '', cover: PLACEHOLDER_IMG, url: file.path });
                 }
             });
         });
     }
 
-    // UPDATED: createPlaylistUI now builds the rich list items
     function createPlaylistUI() {
-        playlistElement.innerHTML = ''; // Clear any loading text
+        playlistElement.innerHTML = '';
         songs.forEach((song, index) => {
             const listItem = document.createElement('li');
-            listItem.innerHTML = `
-                <img src="${song.cover}" alt="Cover for ${song.title}">
-                <span class="playlist-song-title">${song.title}</span>
-            `;
-            // Add a click listener directly to the item
-            listItem.addEventListener('click', () => {
-                playSong(index);
-            });
+            listItem.dataset.index = index; // Keep track of index for clicks
+            listItem.innerHTML = `<img src="${song.cover}" alt="Cover"><span class="playlist-song-title">${song.title}</span>`;
             playlistElement.appendChild(listItem);
         });
+        updateClickListeners();
     }
-    
-    // NEW: Function to initialize the drag-and-drop functionality
+
     function initializeSortable() {
         new Sortable(playlistElement, {
             animation: 150,
             ghostClass: 'sortable-ghost',
             onEnd: (evt) => {
-                // The item that was dragged
                 const movedItem = songs.splice(evt.oldIndex, 1)[0];
-                // Move it to the new index
                 songs.splice(evt.newIndex, 0, movedItem);
+                
+                // Update originalSongs array as well if not shuffled
+                if (!isShuffled) {
+                    const movedOriginal = originalSongs.splice(evt.oldIndex, 1)[0];
+                    originalSongs.splice(evt.newIndex, 0, movedOriginal);
+                }
 
-                // If the currently playing song was moved, update its index
                 if (currentSongIndex === evt.oldIndex) {
                     currentSongIndex = evt.newIndex;
                 } else if (evt.oldIndex < currentSongIndex && evt.newIndex >= currentSongIndex) {
@@ -190,26 +300,22 @@
                 } else if (evt.oldIndex > currentSongIndex && evt.newIndex <= currentSongIndex) {
                     currentSongIndex++;
                 }
-
-                // The UI is already updated by SortableJS, we just synced our 'songs' array.
-                // Re-add click listeners since the DOM order has changed.
-                updateClickListeners();
+                createPlaylistUI();
+                updateActivePlaylistItem();
             }
         });
     }
 
-    // Helper to re-attach click listeners after a sort
     function updateClickListeners() {
         const listItems = playlistElement.querySelectorAll('li');
-        listItems.forEach((item, index) => {
-            // Remove old listener to prevent duplicates
-            const newItem = item.cloneNode(true);
-            item.parentNode.replaceChild(newItem, item);
-            newItem.addEventListener('click', () => playSong(index));
+        listItems.forEach((item) => {
+            item.addEventListener('click', () => {
+                const index = parseInt(item.dataset.index, 10);
+                playSong(index);
+            });
         });
     }
     
-    // SIMPLIFIED: playSong now just reads from the pre-loaded songs array
     function playSong(index) {
         if (index < 0 || index >= songs.length) return;
         currentSongIndex = index;
@@ -232,22 +338,34 @@
             item.classList.toggle('active', index === currentSongIndex);
         });
     }
-
+    
+    // --- UPDATED NEXT/PREV & SONG END LOGIC ---
     function playNext() {
+        if (songs.length === 0) return;
         const nextIndex = (currentSongIndex + 1) % songs.length;
         playSong(nextIndex);
     }
 
     function playPrevious() {
+        if (songs.length === 0) return;
         const prevIndex = (currentSongIndex - 1 + songs.length) % songs.length;
         playSong(prevIndex);
     }
+    
+    audioPlayer.addEventListener('ended', () => {
+        if (repeatState === 'one') {
+            playSong(currentSongIndex); // Replay the current song
+        } else if (currentSongIndex === songs.length - 1 && repeatState === 'none') {
+            // If it's the last song and repeat is off, do nothing
+            return;
+        } else {
+            playNext(); // Otherwise, play the next song (handles 'repeat all')
+        }
+    });
 
     prevBtn.addEventListener('click', playPrevious);
     nextBtn.addEventListener('click', playNext);
-    audioPlayer.addEventListener('ended', playNext);
-
-    // Start everything by fetching the playlist
+    
     fetchPlaylist();
 </script>
 
