@@ -11,7 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <style>
-        /* STEP 1: CSS Variables for Theming */
         :root {
             --bg-color: #f0f2f5;
             --card-bg: #ffffff;
@@ -35,7 +34,6 @@
             --border-color: #3e4042;
             --shadow-color: rgba(0,0,0,0.3);
         }
-        /* End of Theming Variables */
 
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
@@ -56,7 +54,6 @@
             transition: background-color 0.3s;
         }
         
-        /* NEW: Header for title and theme toggle */
         .player-header {
             display: flex;
             justify-content: space-between;
@@ -76,7 +73,7 @@
         #player-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; }
         .control-btn { background: none; border: none; font-size: 1.8em; cursor: pointer; color: var(--text-secondary); transition: color 0.2s; }
         .control-btn:hover { color: var(--primary-color); }
-        .control-btn.active { color: var(--primary-color); } /* Style for active shuffle/repeat */
+        .control-btn.active { color: var(--primary-color); }
 
         audio { width: 100%; border-radius: 999px; }
         h2 { text-align: center; color: var(--primary-color); font-size: 1.2em; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px; }
@@ -136,20 +133,16 @@
     const songAlbumElement = document.getElementById('song-album');
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
-    // NEW: Get references to new buttons
     const darkModeToggle = document.getElementById('dark-mode-toggle');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const repeatBtn = document.getElementById('repeat-btn');
 
     let songs = [];
-    let originalSongs = []; // To restore from shuffle
+    let originalSongs = [];
     let currentSongIndex = -1;
-
-    // NEW: State variables for new features
     let isShuffled = false;
-    let repeatState = 'none'; // Possible states: 'none', 'all', 'one'
+    let repeatState = 'none';
 
-    // --- DARK MODE LOGIC ---
     function applyTheme(theme) {
         if (theme === 'dark') {
             document.body.classList.add('dark-mode');
@@ -164,55 +157,46 @@
         applyTheme(newTheme);
         localStorage.setItem('theme', newTheme);
     });
-    // Check for saved theme on page load
     const savedTheme = localStorage.getItem('theme') || 'light';
     applyTheme(savedTheme);
 
-
-    // --- SHUFFLE LOGIC ---
     shuffleBtn.addEventListener('click', () => {
         isShuffled = !isShuffled;
         shuffleBtn.classList.toggle('active', isShuffled);
-
         if (isShuffled) {
             shufflePlaylist();
         } else {
-            // Restore original order and find current song
-            const currentSongUrl = songs[currentSongIndex].url;
+            const currentSongUrl = songs[currentSongIndex]?.url;
             songs = [...originalSongs];
             currentSongIndex = songs.findIndex(song => song.url === currentSongUrl);
         }
-        // Re-render the UI to show the new order
         createPlaylistUI();
         updateActivePlaylistItem();
     });
 
     function shufflePlaylist() {
         let currentSong = songs[currentSongIndex];
-        // Fisher-Yates shuffle algorithm
         for (let i = songs.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [songs[i], songs[j]] = [songs[j], songs[i]];
         }
-        // Put the current song back at the top to avoid interruption
-        const nowPlayingIndex = songs.findIndex(song => song.url === currentSong.url);
+        const nowPlayingIndex = songs.findIndex(song => song.url === currentSong?.url);
         if (nowPlayingIndex !== -1) {
             [songs[0], songs[nowPlayingIndex]] = [songs[nowPlayingIndex], songs[0]];
             currentSongIndex = 0;
         }
     }
 
-    // --- REPEAT LOGIC ---
     repeatBtn.addEventListener('click', () => {
         if (repeatState === 'none') {
             repeatState = 'all';
             repeatBtn.classList.add('active');
-            repeatBtn.textContent = '🔁'; // Stays the same, but active color shows it's on
+            repeatBtn.textContent = '🔁';
         } else if (repeatState === 'all') {
             repeatState = 'one';
             repeatBtn.classList.add('active');
-            repeatBtn.textContent = '🔂'; // Change icon for "repeat one"
-        } else { // repeatState === 'one'
+            repeatBtn.textContent = '🔂';
+        } else {
             repeatState = 'none';
             repeatBtn.classList.remove('active');
             repeatBtn.textContent = '🔁';
@@ -226,15 +210,20 @@
             if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
             const files = await response.json();
             
-            const mp3Files = files.filter(file => file.name.endsWith('.mp3'));
-            if (mp3Files.length === 0) {
-                 loadingElement.textContent = 'No MP3 files found.';
+            // ⭐ KEY CHANGE 1: Define allowed extensions and update the filter
+            const allowedExtensions = ['.mp3', '.flac', '.wav', '.ogg', '.oga'];
+            const audioFiles = files.filter(file => {
+                return allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+            });
+
+            if (audioFiles.length === 0) {
+                 loadingElement.textContent = 'No audio files found.';
                  return;
             }
 
-            const songPromises = mp3Files.map(file => getSongMetadata(file));
+            const songPromises = audioFiles.map(file => getSongMetadata(file));
             songs = await Promise.all(songPromises);
-            originalSongs = [...songs]; // Keep a copy of the original order
+            originalSongs = [...songs];
 
             loadingElement.style.display = 'none';
             createPlaylistUI();
@@ -248,6 +237,26 @@
 
     function getSongMetadata(file) {
         return new Promise((resolve) => {
+            // ⭐ KEY CHANGE 2: Helper function to create default data from filename
+            const createDefaultMetadata = (fileName) => {
+                // Removes all known extensions from the filename for a clean title
+                const cleanTitle = fileName.replace(/\.(mp3|flac|wav|ogg|oga)$/i, '');
+                return {
+                    title: cleanTitle.replace(/_/g, ' '),
+                    artist: 'Unknown Artist',
+                    album: '',
+                    cover: PLACEHOLDER_IMG,
+                    url: file.path
+                };
+            };
+            
+            // Only try to read metadata for supported file types
+            const canReadMetadata = file.name.toLowerCase().endsWith('.mp3') || file.name.toLowerCase().endsWith('.flac');
+            if (!canReadMetadata) {
+                resolve(createDefaultMetadata(file.name));
+                return;
+            }
+
             const songUrl = new URL(file.path, window.location.href).href;
             window.jsmediatags.read(songUrl, {
                 onSuccess: (tag) => {
@@ -259,10 +268,11 @@
                         for (let i = 0; i < data.length; i++) { base64String += String.fromCharCode(data[i]); }
                         cover = `data:${format};base64,${window.btoa(base64String)}`;
                     }
-                    resolve({ title: tags.title || file.name.replace('.mp3', ''), artist: tags.artist || 'Unknown Artist', album: tags.album || 'Unknown Album', cover: cover, url: file.path });
+                    resolve({ title: tags.title || createDefaultMetadata(file.name).title, artist: tags.artist || 'Unknown Artist', album: tags.album || 'Unknown Album', cover: cover, url: file.path });
                 },
                 onError: (error) => {
-                    resolve({ title: file.name.replace('.mp3', ''), artist: 'Metadata not found', album: '', cover: PLACEHOLDER_IMG, url: file.path });
+                    console.warn(`Could not read tags for ${file.name}:`, error);
+                    resolve(createDefaultMetadata(file.name)); // Resolve with defaults on error
                 }
             });
         });
@@ -272,7 +282,7 @@
         playlistElement.innerHTML = '';
         songs.forEach((song, index) => {
             const listItem = document.createElement('li');
-            listItem.dataset.index = index; // Keep track of index for clicks
+            listItem.dataset.index = index;
             listItem.innerHTML = `<img src="${song.cover}" alt="Cover"><span class="playlist-song-title">${song.title}</span>`;
             playlistElement.appendChild(listItem);
         });
@@ -287,7 +297,6 @@
                 const movedItem = songs.splice(evt.oldIndex, 1)[0];
                 songs.splice(evt.newIndex, 0, movedItem);
                 
-                // Update originalSongs array as well if not shuffled
                 if (!isShuffled) {
                     const movedOriginal = originalSongs.splice(evt.oldIndex, 1)[0];
                     originalSongs.splice(evt.newIndex, 0, movedOriginal);
@@ -319,16 +328,13 @@
     function playSong(index) {
         if (index < 0 || index >= songs.length) return;
         currentSongIndex = index;
-
         const song = songs[currentSongIndex];
         audioPlayer.src = song.url;
         audioPlayer.play();
-
         albumCoverElement.src = song.cover;
         songTitleElement.textContent = song.title;
         songArtistElement.textContent = song.artist;
         songAlbumElement.textContent = song.album;
-
         updateActivePlaylistItem();
     }
 
@@ -339,7 +345,6 @@
         });
     }
     
-    // --- UPDATED NEXT/PREV & SONG END LOGIC ---
     function playNext() {
         if (songs.length === 0) return;
         const nextIndex = (currentSongIndex + 1) % songs.length;
@@ -354,12 +359,11 @@
     
     audioPlayer.addEventListener('ended', () => {
         if (repeatState === 'one') {
-            playSong(currentSongIndex); // Replay the current song
+            playSong(currentSongIndex);
         } else if (currentSongIndex === songs.length - 1 && repeatState === 'none') {
-            // If it's the last song and repeat is off, do nothing
             return;
         } else {
-            playNext(); // Otherwise, play the next song (handles 'repeat all')
+            playNext();
         }
     });
 
