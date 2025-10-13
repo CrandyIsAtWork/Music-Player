@@ -44,6 +44,8 @@
             padding: 20px; 
             transition: background-color 0.3s, color 0.3s;
         }
+        
+        /* Default mobile layout */
         #player-container { 
             max-width: 450px; 
             margin: auto; 
@@ -52,103 +54,140 @@
             border-radius: 16px; 
             box-shadow: 0 8px 24px var(--shadow-color); 
             text-align: center;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, max-width 0.3s ease;
         }
-        
+
         .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         h1 { margin: 0; font-size: 1.5em; color: var(--primary-color); }
         #dark-mode-toggle { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); }
 
-        #album-cover { width: 80%; max-width: 300px; height: auto; border-radius: 12px; box-shadow: 0 4px 12px var(--shadow-color); margin-bottom: 20px; aspect-ratio: 1 / 1; object-fit: cover; background-color: var(--hover-bg); }
-        
+        #album-cover { width: 80%; max-width: 300px; margin-left: auto; margin-right: auto; height: auto; border-radius: 12px; box-shadow: 0 4px 12px var(--shadow-color); margin-bottom: 20px; aspect-ratio: 1 / 1; object-fit: cover; background-color: var(--hover-bg); }
+
         #song-info { margin-bottom: 15px; min-height: 50px; }
         #song-title { font-size: 1.4em; font-weight: bold; color: var(--text-color); margin: 0; }
         #song-artist { font-size: 1em; color: var(--text-secondary); margin: 5px 0 0; }
-        
-        /* NEW: Styles for the custom progress bar and time */
+
         #progress-container { width: 100%; background-color: var(--progress-bg); border-radius: 5px; cursor: pointer; margin: 20px 0 10px; }
         #progress-bar { width: 0%; height: 6px; background-color: var(--primary-color); border-radius: 5px; }
         #time-container { display: flex; justify-content: space-between; font-size: 0.8em; color: var(--text-secondary); }
 
-        #player-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 10px 0 20px; }
+        #player-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 10px 0; }
         .control-btn { background: none; border: none; font-size: 1.8em; cursor: pointer; color: var(--text-secondary); transition: color 0.2s; }
-        #play-pause-btn { font-size: 2.8em; color: var(--text-color); } /* Make play/pause bigger */
+        #play-pause-btn { font-size: 2.8em; color: var(--text-color); }
         .control-btn:hover { color: var(--primary-color); }
         .control-btn.active { color: var(--primary-color); }
 
-        audio { display: none; } /* Hide the default audio element */
+        audio { display: none; }
 
-        .tab-nav { display: flex; border-bottom: 1px solid var(--border-color); }
+        .tab-nav { display: flex; border-bottom: 1px solid var(--border-color); margin-top: 20px; }
         .tab-btn { flex: 1; padding: 10px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; color: var(--text-secondary); font-size: 1em; font-weight: 500;}
         .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        #search-bar { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--hover-bg); color: var(--text-color); }
+        #search-bar { width: 100%; box-sizing: border-box; padding: 10px; margin: 15px 0; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--hover-bg); color: var(--text-color); }
 
         .song-list { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; text-align: left; }
         .song-list li { display: flex; align-items: center; gap: 15px; padding: 10px; user-select: none; transition: background-color 0.2s; border-bottom: 1px solid var(--border-color); }
         .song-list li:hover { background-color: var(--hover-bg); }
-        .song-list li img { width: 45px; height: 45px; border-radius: 6px; object-fit: cover; }
-        .song-list li .song-item-info { flex-grow: 1; }
-        .song-list li .song-item-title { font-weight: bold; }
+        .song-list li img { width: 45px; height: 45px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+        .song-list li .song-item-info { flex-grow: 1; min-width: 0; }
+        .song-list li .song-item-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .song-list li .song-item-artist { font-size: 0.9em; color: var(--text-secondary); }
         .song-list li .action-btn { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); padding: 5px; }
         .song-list li.active { background-color: var(--active-bg); }
         #playlist.song-list li { cursor: grab; }
         .sortable-ghost { background-color: var(--primary-color); opacity: 0.5; }
 
-        #loading { text-align: center; padding: 20px; color: var(--text-secondary); }
+        /* ⭐ NEW: Styles for wider screens (Desktops/Tablets) ⭐ */
+        @media (min-width: 768px) {
+            #player-container {
+                max-width: 900px;
+                display: flex;
+                gap: 30px;
+                text-align: left;
+            }
+
+            .player-column {
+                flex: 1;
+                text-align: center;
+            }
+
+            .list-column {
+                flex: 1.2;
+                display: flex;
+                flex-direction: column;
+            }
+
+            #album-cover {
+                width: 100%;
+                max-width: none;
+            }
+
+            .tab-content {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .song-list {
+                max-height: none;
+                flex-grow: 1;
+            }
+        }
     </style>
 </head>
 <body>
 
 <div id="player-container">
-    <div class="player-header">
-        <h1>Musix</h1>
-        <button id="dark-mode-toggle">☀️</button>
+    <div class="player-column">
+        <div class="player-header">
+            <h1>Musix</h1>
+            <button id="dark-mode-toggle">☀️</button>
+        </div>
+
+        <img id="album-cover" src="images/placeholder.png" alt="Album Cover">
+        <div id="song-info">
+            <p id="song-title">Select a song</p>
+            <p id="song-artist">Artist</p>
+        </div>
+        
+        <audio id="audio-player"></audio>
+
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div id="time-container">
+            <span id="current-time">0:00</span>
+            <span id="total-duration">0:00</span>
+        </div>
+
+        <div id="player-controls">
+            <button id="shuffle-btn" class="control-btn">🔀</button>
+            <button id="prev-btn" class="control-btn">⏮️</button>
+            <button id="play-pause-btn" class="control-btn">▶️</button>
+            <button id="next-btn" class="control-btn">⏭️</button>
+            <button id="repeat-btn" class="control-btn">🔁</button>
+        </div>
     </div>
 
-    <img id="album-cover" src="images/placeholder.png" alt="Album Cover">
-    <div id="song-info">
-        <p id="song-title">Select a song</p>
-        <p id="song-artist">Artist</p>
-    </div>
-    
-    <audio id="audio-player"></audio>
+    <div class="list-column">
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="playlist-tab">Playlist</button>
+            <button class="tab-btn" data-tab="search-tab">Add Songs</button>
+        </div>
 
-    <div id="progress-container">
-        <div id="progress-bar"></div>
-    </div>
-    <div id="time-container">
-        <span id="current-time">0:00</span>
-        <span id="total-duration">0:00</span>
-    </div>
-
-    <div id="player-controls">
-        <button id="shuffle-btn" class="control-btn">🔀</button>
-        <button id="prev-btn" class="control-btn">⏮️</button>
-        <button id="play-pause-btn" class="control-btn">▶️</button>
-        <button id="next-btn" class="control-btn">⏭️</button>
-        <button id="repeat-btn" class="control-btn">🔁</button>
-    </div>
-
-    <div class="tab-nav">
-        <button class="tab-btn active" data-tab="playlist-tab">Playlist</button>
-        <button class="tab-btn" data-tab="search-tab">Add Songs</button>
-    </div>
-
-    <div id="playlist-tab" class="tab-content active">
-        <ul id="playlist" class="song-list">
-            <div id="playlist-loading">Your playlist is empty.</div>
-        </ul>
-    </div>
-    
-    <div id="search-tab" class="tab-content">
-        <input type="text" id="search-bar" placeholder="Search all songs...">
-        <ul id="search-results" class="song-list">
-             <div id="library-loading">Loading library...</div>
-        </ul>
+        <div id="playlist-tab" class="tab-content active">
+            <ul id="playlist" class="song-list">
+                </ul>
+        </div>
+        
+        <div id="search-tab" class="tab-content">
+            <input type="text" id="search-bar" placeholder="Search all songs...">
+            <ul id="search-results" class="song-list">
+                 <div id="library-loading">Loading library...</div>
+            </ul>
+        </div>
     </div>
 </div>
 
@@ -281,12 +320,10 @@
         localStorage.setItem('userPlaylist', JSON.stringify(playlist));
     }
     
-    // ⭐ FIX #1: The playlist rendering logic is now more robust.
     function renderPlaylist() {
-        playlistElement.innerHTML = ''; // Clear the list first
+        playlistElement.innerHTML = '';
         if (playlist.length === 0) {
-            // Directly insert the message instead of trying to manage a separate element
-            playlistElement.innerHTML = `<div id="playlist-loading">Your playlist is empty.</div>`;
+            playlistElement.innerHTML = `<div id="playlist-loading" style="text-align: center; padding: 20px; color: var(--text-secondary);">Your playlist is empty.</div>`;
             return;
         }
 
@@ -310,10 +347,9 @@
         const libraryLoading = document.getElementById('library-loading');
         searchResultsElement.innerHTML = '';
         if (results.length === 0 && masterLibrary.length > 0) {
-            searchResultsElement.innerHTML = `<div id="library-loading">No songs match your search.</div>`;
+            searchResultsElement.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No songs match your search.</div>`;
             return;
         }
-        // If the main library is still loading, the initial message will show.
         if (libraryLoading) libraryLoading.style.display = 'none';
 
         results.forEach(song => {
@@ -473,21 +509,17 @@
         updateActivePlaylistItem();
     }
     
-    // ⭐ FIX #2: The repeat button logic is now clearer.
     function toggleRepeat() {
         if (repeatState === 'none') {
             repeatState = 'all';
-            // State: Repeat All (Active color, repeat icon)
             repeatBtn.classList.add('active');
             repeatBtn.textContent = '🔁';
         } else if (repeatState === 'all') {
             repeatState = 'one';
-            // State: Repeat One (Active color, repeat-one icon)
             repeatBtn.classList.add('active'); 
             repeatBtn.textContent = '🔂';
-        } else { // repeatState is 'one'
+        } else { 
             repeatState = 'none';
-            // State: Repeat Off (Inactive color, repeat icon)
             repeatBtn.classList.remove('active');
             repeatBtn.textContent = '🔁';
         }
