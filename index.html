@@ -93,13 +93,12 @@
                 .filter(file => file.name.endsWith('.mp3'))
                 .map(file => ({
                     title: file.name.replace('.mp3', '').replace(/_/g, ' '),
-                    url: file.path
+                    url: file.path // The relative path, e.g., "music/song.mp3"
                 }));
 
             if (songs.length > 0) {
                 loadingElement.style.display = 'none';
                 createPlaylistUI();
-                // Set initial placeholder text
                 songTitleElement.textContent = 'Select a song to play';
                 songArtistElement.textContent = 'Artist will appear here';
                 songAlbumElement.textContent = '';
@@ -122,30 +121,32 @@
         });
     }
 
-    // UPDATED: playSong function now reads metadata
     function playSong(index) {
         if (index < 0 || index >= songs.length) return;
         currentSongIndex = index;
 
         const song = songs[currentSongIndex];
+        
+        // Use the relative path for the audio player (this is correct and efficient)
         audioPlayer.src = song.url;
         audioPlayer.play();
 
-        // Update the active item in the playlist UI
         updateActivePlaylistItem();
 
-        // --- NEW: Use jsmediatags to read metadata ---
-        window.jsmediatags.read(song.url, {
+        // --- ⭐️ KEY CHANGE IS HERE ⭐️ ---
+        // Create a full, absolute URL for jsmediatags to read the file.
+        // It combines your GitHub Pages site URL with the relative path of the song.
+        const fullSongUrl = new URL(song.url, window.location.href).href;
+
+        // Use the new full URL to read the metadata
+        window.jsmediatags.read(fullSongUrl, {
             onSuccess: function(tag) {
-                console.log(tag); // See all the data you can get!
                 const tags = tag.tags;
 
-                // Update the text elements
-                songTitleElement.textContent = tags.title || song.title; // Fallback to filename
+                songTitleElement.textContent = tags.title || song.title;
                 songArtistElement.textContent = tags.artist || 'Unknown Artist';
                 songAlbumElement.textContent = tags.album || 'Unknown Album';
 
-                // Update the album cover
                 const { data, format } = tags.picture || {};
                 if (data) {
                     let base64String = "";
@@ -158,10 +159,10 @@
                 }
             },
             onError: function(error) {
-                console.error('Error reading media tags:', error);
+                console.error(`Error reading tags for ${fullSongUrl}:`, error);
                 // Reset to defaults if tags can't be read
                 songTitleElement.textContent = song.title;
-                songArtistElement.textContent = 'Metadata not found';
+                songArtistElement.textContent = 'Metadata not available';
                 songAlbumElement.textContent = '';
                 albumCoverElement.src = "https://via.placeholder.com/300";
             }
@@ -175,20 +176,16 @@
         });
     }
 
-    // --- NEW: Functions for Next and Previous buttons ---
     function playNext() {
-        // The '%' (modulo) operator makes it loop back to the start
         const nextIndex = (currentSongIndex + 1) % songs.length;
         playSong(nextIndex);
     }
 
     function playPrevious() {
-        // This logic makes it loop back to the end from the start
         const prevIndex = (currentSongIndex - 1 + songs.length) % songs.length;
         playSong(prevIndex);
     }
 
-    // --- NEW: Event listeners for the buttons ---
     prevBtn.addEventListener('click', playPrevious);
     nextBtn.addEventListener('click', playNext);
     
@@ -199,10 +196,10 @@
         }
     });
 
-    audioPlayer.addEventListener('ended', playNext); // Use playNext for auto-advance
+    audioPlayer.addEventListener('ended', playNext);
 
     fetchPlaylist();
 </script>
-
+    
 </body>
 </html>
