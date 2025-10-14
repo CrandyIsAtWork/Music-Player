@@ -11,128 +11,143 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <style>
-        :root {
-            --bg-color: #f0f2f5;
-            --card-bg: #ffffff;
-            --text-color: #1c1e21;
-            --text-secondary: #606770;
-            --primary-color: #1877f2;
-            --hover-bg: #e4e6eb;
-            --active-bg: #e7f3ff;
-            --border-color: #ddd;
-            --shadow-color: rgba(0,0,0,0.1);
-            --progress-bg: #dcdfe3;
+    :root {
+        --bg-color: #f0f2f5;
+        --card-bg: #ffffff;
+        --text-color: #1c1e21;
+        --text-secondary: #606770;
+        --primary-color: #1877f2;
+        --hover-bg: #e4e6eb;
+        --active-bg: #e7f3ff;
+        --border-color: #ddd;
+        --shadow-color: rgba(0,0,0,0.1);
+        --progress-bg: #dcdfe3;
+    }
+
+    body.dark-mode {
+        --bg-color: #18191a;
+        --card-bg: #242526;
+        --text-color: #e4e6eb;
+        --text-secondary: #b0b3b8;
+        --primary-color: #2d88ff;
+        --hover-bg: #3a3b3c;
+        --active-bg: #3a3b3c;
+        --border-color: #3e4042;
+        --shadow-color: rgba(0,0,0,0.3);
+        --progress-bg: #3e4042;
+    }
+
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        background-color: var(--bg-color); 
+        color: var(--text-color);
+        padding: 20px; 
+        transition: background-color 0.3s, color 0.3s;
+    }
+    
+    #player-container { 
+        max-width: 450px; 
+        margin: auto; 
+        background: var(--card-bg); 
+        padding: 25px; 
+        border-radius: 16px; 
+        box-shadow: 0 8px 24px var(--shadow-color); 
+        text-align: center;
+        transition: background-color 0.3s, max-width 0.3s ease, padding 0.3s ease, border-color 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    /* ⭐ FIX: The Corrected RGB Animation */
+    @keyframes rgb-hue-rotate {
+        from {
+            --hue: 0;
         }
-
-        body.dark-mode {
-            --bg-color: #18191a;
-            --card-bg: #242526;
-            --text-color: #e4e6eb;
-            --text-secondary: #b0b3b8;
-            --primary-color: #2d88ff;
-            --hover-bg: #3a3b3c;
-            --active-bg: #3a3b3c;
-            --border-color: #3e4042;
-            --shadow-color: rgba(0,0,0,0.3);
-            --progress-bg: #3e4042;
+        to {
+            --hue: 360;
         }
+    }
 
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: var(--bg-color); 
-            color: var(--text-color);
-            padding: 20px; 
-            transition: background-color 0.3s, color 0.3s;
-        }
-        
-        #player-container { 
-            max-width: 450px; 
-            margin: auto; 
-            background: var(--card-bg); 
-            padding: 25px; 
-            border-radius: 16px; 
-            box-shadow: 0 8px 24px var(--shadow-color); 
-            text-align: center;
-            transition: background-color 0.3s, max-width 0.3s ease, padding 0.3s ease, border-color 0.3s ease;
-            border: 2px solid transparent; /* Make space for RGB border */
-        }
+    /* When rgb-mode is active, run the hue animation */
+    body.rgb-mode {
+        animation: rgb-hue-rotate 5s linear infinite;
+    }
 
-        /* ⭐ NEW: RGB Animation and Styles */
-        @keyframes rgb-cycle {
-            0%   { --primary-color: hsl(0, 90%, 55%); }
-            100% { --primary-color: hsl(360, 90%, 55%); }
-        }
+    /* The border will now use the animated --hue variable to build its color */
+    body.rgb-mode #player-container {
+        border-color: hsl(var(--hue, 0), 90%, 55%);
+    }
 
-        /* When rgb-mode is active, animate the --primary-color variable itself */
-        body.rgb-mode {
-            animation: rgb-cycle 5s linear infinite;
-        }
+    /* All elements using --primary-color will now be dynamic in RGB mode */
+    body.rgb-mode h1,
+    body.rgb-mode .tab-btn.active,
+    body.rgb-mode #progress-bar,
+    body.rgb-mode .control-btn:hover,
+    body.rgb-mode .control-btn.active {
+        color: hsl(var(--hue, 0), 90%, 55%);
+        border-bottom-color: hsl(var(--hue, 0), 90%, 55%); /* For the active tab */
+        background-color: hsl(var(--hue, 0), 90%, 55%); /* For the progress bar */
+    }
+    
+    .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; }
+    h1 { margin: 0; font-size: 1.5em; color: var(--primary-color); }
+    
+    .menu-container { position: relative; }
+    .menu-toggle { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); padding: 5px 10px; }
+    .dropdown-menu { position: absolute; top: 100%; right: 0; background-color: var(--card-bg); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); z-index: 10; overflow: hidden; min-width: 180px; border: 1px solid var(--border-color); }
+    .dropdown-menu.hidden { display: none; }
+    .menu-item { display: flex; align-items: center; gap: 10px; padding: 10px 15px; background: none; border: none; width: 100%; text-align: left; color: var(--text-color); cursor: pointer; font-size: 0.9em; }
+    .menu-item:hover { background-color: var(--hover-bg); }
 
-        /* The border will now use the animated variable */
-        body.rgb-mode #player-container {
-            border-color: var(--primary-color);
-        }
+    #album-cover { width: 80%; max-width: 300px; margin-left: auto; margin-right: auto; height: auto; border-radius: 12px; box-shadow: 0 4px 12px var(--shadow-color); margin-bottom: 20px; aspect-ratio: 1 / 1; object-fit: cover; background-color: var(--hover-bg); }
 
-        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; }
-        h1 { margin: 0; font-size: 1.5em; color: var(--primary-color); }
-        
-        .menu-container { position: relative; }
-        .menu-toggle { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); padding: 5px 10px; }
-        .dropdown-menu { position: absolute; top: 100%; right: 0; background-color: var(--card-bg); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); z-index: 10; overflow: hidden; min-width: 180px; border: 1px solid var(--border-color); }
-        .dropdown-menu.hidden { display: none; }
-        .menu-item { display: flex; align-items: center; gap: 10px; padding: 10px 15px; background: none; border: none; width: 100%; text-align: left; color: var(--text-color); cursor: pointer; font-size: 0.9em; }
-        .menu-item:hover { background-color: var(--hover-bg); }
+    #song-info { margin-bottom: 15px; min-height: 50px; }
+    #song-title { font-size: 1.4em; font-weight: bold; color: var(--text-color); margin: 0; }
+    #song-artist { font-size: 1em; color: var(--text-secondary); margin: 5px 0 0; }
 
-        #album-cover { width: 80%; max-width: 300px; margin-left: auto; margin-right: auto; height: auto; border-radius: 12px; box-shadow: 0 4px 12px var(--shadow-color); margin-bottom: 20px; aspect-ratio: 1 / 1; object-fit: cover; background-color: var(--hover-bg); }
+    #progress-container { width: 100%; background-color: var(--progress-bg); border-radius: 5px; cursor: pointer; margin: 20px 0 10px; }
+    #progress-bar { width: 0%; height: 6px; background-color: var(--primary-color); border-radius: 5px; }
+    #time-container { display: flex; justify-content: space-between; font-size: 0.8em; color: var(--text-secondary); }
 
-        #song-info { margin-bottom: 15px; min-height: 50px; }
-        #song-title { font-size: 1.4em; font-weight: bold; color: var(--text-color); margin: 0; }
-        #song-artist { font-size: 1em; color: var(--text-secondary); margin: 5px 0 0; }
+    #player-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 10px 0; }
+    .control-btn { background: none; border: none; font-size: 1.8em; cursor: pointer; color: var(--text-secondary); transition: color 0.2s; }
+    #play-pause-btn { font-size: 2.8em; color: var(--text-color); }
+    .control-btn:hover { color: var(--primary-color); }
+    .control-btn.active { color: var(--primary-color); }
 
-        #progress-container { width: 100%; background-color: var(--progress-bg); border-radius: 5px; cursor: pointer; margin: 20px 0 10px; }
-        #progress-bar { width: 0%; height: 6px; background-color: var(--primary-color); border-radius: 5px; }
-        #time-container { display: flex; justify-content: space-between; font-size: 0.8em; color: var(--text-secondary); }
+    audio { display: none; }
+    
+    .tab-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+    .tab-nav { display: flex; flex-grow: 1; }
+    .tab-btn { flex: 1; padding: 10px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; color: var(--text-secondary); font-size: 1em; font-weight: 500;}
+    .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
-        #player-controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 10px 0; }
-        .control-btn { background: none; border: none; font-size: 1.8em; cursor: pointer; color: var(--text-secondary); transition: color 0.2s; }
-        #play-pause-btn { font-size: 2.8em; color: var(--text-color); }
-        .control-btn:hover { color: var(--primary-color); }
-        .control-btn.active { color: var(--primary-color); }
+    #search-bar { width: 100%; box-sizing: border-box; padding: 10px; margin: 15px 0; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--hover-bg); color: var(--text-color); }
 
-        audio { display: none; }
-        
-        .tab-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
-        .tab-nav { display: flex; flex-grow: 1; }
-        .tab-btn { flex: 1; padding: 10px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; color: var(--text-secondary); font-size: 1em; font-weight: 500;}
-        .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+    .song-list { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; text-align: left; }
+    .song-list li { display: flex; align-items: center; gap: 10px; padding: 10px; user-select: none; transition: background-color 0.2s; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+    .song-list li:hover { background-color: var(--hover-bg); }
+    .song-list li img { width: 45px; height: 45px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+    .song-list li .song-item-info { flex-grow: 1; min-width: 0; }
+    .song-list li .song-item-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .song-list li .song-item-artist { font-size: 0.9em; color: var(--text-secondary); }
+    .song-list li .action-btn { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); padding: 5px; }
+    .song-list li.active { background-color: var(--active-bg); }
+    .drag-handle { font-size: 1.5em; color: var(--border-color); cursor: grab; padding: 0 8px; }
+    .drag-handle:active { cursor: grabbing; }
 
-        #search-bar { width: 100%; box-sizing: border-box; padding: 10px; margin: 15px 0; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--hover-bg); color: var(--text-color); }
+    .sortable-ghost { background-color: var(--primary-color); opacity: 0.5; }
 
-        .song-list { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; text-align: left; }
-        .song-list li { display: flex; align-items: center; gap: 10px; padding: 10px; user-select: none; transition: background-color 0.2s; border-bottom: 1px solid var(--border-color); cursor: pointer; }
-        .song-list li:hover { background-color: var(--hover-bg); }
-        .song-list li img { width: 45px; height: 45px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
-        .song-list li .song-item-info { flex-grow: 1; min-width: 0; }
-        .song-list li .song-item-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .song-list li .song-item-artist { font-size: 0.9em; color: var(--text-secondary); }
-        .song-list li .action-btn { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); padding: 5px; }
-        .song-list li.active { background-color: var(--active-bg); }
-        .drag-handle { font-size: 1.5em; color: var(--border-color); cursor: grab; padding: 0 8px; }
-        .drag-handle:active { cursor: grabbing; }
-
-        .sortable-ghost { background-color: var(--primary-color); opacity: 0.5; }
-
-        @media (min-width: 768px) {
-            #player-container { max-width: 900px; display: flex; gap: 30px; text-align: left; }
-            .player-column { flex: 1; text-align: center; }
-            .list-column { flex: 1.2; display: flex; flex-direction: column; }
-            #album-cover { width: 100%; max-width: none; }
-            .tab-content { flex-grow: 1; display: flex; flex-direction: column; }
-            .song-list { max-height: none; flex-grow: 1; }
-        }
-    </style>
+    @media (min-width: 768px) {
+        #player-container { max-width: 900px; display: flex; gap: 30px; text-align: left; }
+        .player-column { flex: 1; text-align: center; }
+        .list-column { flex: 1.2; display: flex; flex-direction: column; }
+        #album-cover { width: 100%; max-width: none; }
+        .tab-content { flex-grow: 1; display: flex; flex-direction: column; }
+        .song-list { max-height: none; flex-grow: 1; }
+    }
+</style>
 </head>
 <body>
 
