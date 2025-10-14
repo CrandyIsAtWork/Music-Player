@@ -56,9 +56,16 @@
             transition: background-color 0.3s, max-width 0.3s ease;
         }
 
-        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; }
         h1 { margin: 0; font-size: 1.5em; color: var(--primary-color); }
-        #dark-mode-toggle { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); }
+        
+        /* ⭐ NEW: Styles for the "three dots" menus */
+        .menu-container { position: relative; }
+        .menu-toggle { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); padding: 5px 10px; }
+        .dropdown-menu { position: absolute; top: 100%; right: 0; background-color: var(--card-bg); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); z-index: 10; overflow: hidden; min-width: 180px; border: 1px solid var(--border-color); }
+        .dropdown-menu.hidden { display: none; }
+        .menu-item { display: flex; align-items: center; gap: 10px; padding: 10px 15px; background: none; border: none; width: 100%; text-align: left; color: var(--text-color); cursor: pointer; font-size: 0.9em; }
+        .menu-item:hover { background-color: var(--hover-bg); }
 
         #album-cover { width: 80%; max-width: 300px; margin-left: auto; margin-right: auto; height: auto; border-radius: 12px; box-shadow: 0 4px 12px var(--shadow-color); margin-bottom: 20px; aspect-ratio: 1 / 1; object-fit: cover; background-color: var(--hover-bg); }
 
@@ -78,11 +85,8 @@
 
         audio { display: none; }
         
-        .playlist-management { display: flex; gap: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        .manage-btn { flex: 1; padding: 8px; font-size: 0.9em; font-weight: 500; border-radius: 6px; border: 1px solid var(--primary-color); background-color: transparent; color: var(--primary-color); cursor: pointer; transition: background-color 0.2s, color 0.2s; }
-        .manage-btn:hover { background-color: var(--primary-color); color: var(--card-bg); }
-
-        .tab-nav { display: flex; border-bottom: 1px solid var(--border-color); }
+        .tab-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .tab-nav { display: flex; flex-grow: 1; }
         .tab-btn { flex: 1; padding: 10px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; color: var(--text-secondary); font-size: 1em; font-weight: 500;}
         .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
         .tab-content { display: none; }
@@ -91,7 +95,7 @@
         #search-bar { width: 100%; box-sizing: border-box; padding: 10px; margin: 15px 0; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--hover-bg); color: var(--text-color); }
 
         .song-list { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; text-align: left; }
-        .song-list li { display: flex; align-items: center; gap: 15px; padding: 10px; user-select: none; transition: background-color 0.2s; border-bottom: 1px solid var(--border-color); cursor: pointer; } /* Set default cursor to pointer */
+        .song-list li { display: flex; align-items: center; gap: 10px; padding: 10px; user-select: none; transition: background-color 0.2s; border-bottom: 1px solid var(--border-color); cursor: pointer; }
         .song-list li:hover { background-color: var(--hover-bg); }
         .song-list li img { width: 45px; height: 45px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
         .song-list li .song-item-info { flex-grow: 1; min-width: 0; }
@@ -99,17 +103,8 @@
         .song-list li .song-item-artist { font-size: 0.9em; color: var(--text-secondary); }
         .song-list li .action-btn { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); padding: 5px; }
         .song-list li.active { background-color: var(--active-bg); }
-        
-        /* ⭐ NEW: Styles for the drag handle */
-        .drag-handle {
-            font-size: 1.5em;
-            color: var(--border-color);
-            cursor: grab;
-            padding-right: 5px;
-        }
-        .drag-handle:active {
-            cursor: grabbing;
-        }
+        .drag-handle { font-size: 1.5em; color: var(--border-color); cursor: grab; padding: 0 8px; }
+        .drag-handle:active { cursor: grabbing; }
 
         .sortable-ghost { background-color: var(--primary-color); opacity: 0.5; }
 
@@ -129,7 +124,19 @@
     <div class="player-column">
         <div class="player-header">
             <h1>Musix</h1>
-            <button id="dark-mode-toggle">☀️</button>
+            <div class="menu-container">
+                <button id="main-menu-toggle" class="menu-toggle">⋮</button>
+                <div id="main-menu" class="dropdown-menu hidden">
+                    <button id="dark-mode-toggle" class="menu-item">
+                        <span id="dark-mode-icon">☀️</span>
+                        <span>Toggle Theme</span>
+                    </button>
+                    <button id="download-song-btn" class="menu-item">
+                        <span>📥</span>
+                        <span>Download Song</span>
+                    </button>
+                </div>
+            </div>
         </div>
         <img id="album-cover" src="images/placeholder.png" alt="Album Cover">
         <div id="song-info">
@@ -154,13 +161,24 @@
     </div>
 
     <div class="list-column">
-        <div class="playlist-management">
-            <button id="import-playlist-btn" class="manage-btn">Import 📥</button>
-            <button id="export-playlist-btn" class="manage-btn">Export 📤</button>
-        </div>
-        <div class="tab-nav">
-            <button class="tab-btn active" data-tab="playlist-tab">Playlist</button>
-            <button class="tab-btn" data-tab="search-tab">Add Songs</button>
+        <div class="tab-header">
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="playlist-tab">Playlist</button>
+                <button class="tab-btn" data-tab="search-tab">Add Songs</button>
+            </div>
+            <div class="menu-container">
+                <button id="playlist-menu-toggle" class="menu-toggle">⋮</button>
+                <div id="playlist-menu" class="dropdown-menu hidden">
+                    <button id="import-playlist-btn" class="menu-item">
+                        <span>📥</span>
+                        <span>Import Playlist</span>
+                    </button>
+                    <button id="export-playlist-btn" class="menu-item">
+                        <span>📤</span>
+                        <span>Export Playlist</span>
+                    </button>
+                </div>
+            </div>
         </div>
         <div id="playlist-tab" class="tab-content active">
             <ul id="playlist" class="song-list">
@@ -188,7 +206,6 @@
     const albumCoverElement = document.getElementById('album-cover');
     const songTitleElement = document.getElementById('song-title');
     const songArtistElement = document.getElementById('song-artist');
-    const darkModeToggle = document.getElementById('dark-mode-toggle');
     const playlistElement = document.getElementById('playlist');
     const searchResultsElement = document.getElementById('search-results');
     const searchBar = document.getElementById('search-bar');
@@ -202,6 +219,14 @@
     const progressBar = document.getElementById('progress-bar');
     const currentTimeEl = document.getElementById('current-time');
     const totalDurationEl = document.getElementById('total-duration');
+    // New Menu Elements
+    const mainMenuToggle = document.getElementById('main-menu-toggle');
+    const mainMenu = document.getElementById('main-menu');
+    const playlistMenuToggle = document.getElementById('playlist-menu-toggle');
+    const playlistMenu = document.getElementById('playlist-menu');
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const darkModeIcon = document.getElementById('dark-mode-icon');
+    const downloadSongBtn = document.getElementById('download-song-btn');
     const importBtn = document.getElementById('import-playlist-btn');
     const exportBtn = document.getElementById('export-playlist-btn');
 
@@ -244,10 +269,17 @@
         }
     }
 
+    // ⭐ UPDATED: getSongMetadata now creates a unique ID for each song
     function getSongMetadata(file) {
         return new Promise((resolve) => {
+            // The unique ID is the Base64 encoded filename without its extension.
+            const uniqueId = btoa(file.name.replace(/\.[^/.]+$/, ''));
             const createDefaultMetadata = (fileName) => ({
-                title: fileName.replace(/\.[^/.]+$/, "").replace(/_/g, ' '), artist: 'Unknown Artist', cover: PLACEHOLDER_IMG, url: file.path
+                id: uniqueId,
+                title: fileName.replace(/\.[^/.]+$/, "").replace(/_/g, ' '), 
+                artist: 'Unknown Artist', 
+                cover: PLACEHOLDER_IMG, 
+                url: file.path
             });
             const canReadMetadata = ['.mp3', '.flac', '.m4a'].some(ext => file.name.toLowerCase().endsWith(ext));
             if (!canReadMetadata) {
@@ -265,22 +297,23 @@
                         for (let i = 0; i < data.length; i++) { base64String += String.fromCharCode(data[i]); }
                         cover = `data:${format};base64,${window.btoa(base64String)}`;
                     }
-                    resolve({ title: tags.title || createDefaultMetadata(file.name).title, artist: tags.artist || 'Unknown Artist', cover: cover, url: file.path });
+                    resolve({ id: uniqueId, title: tags.title || createDefaultMetadata(file.name).title, artist: tags.artist || 'Unknown Artist', cover: cover, url: file.path });
                 },
                 onError: () => resolve(createDefaultMetadata(file.name))
             });
         });
     }
     
-    function addSongToPlaylist(songUrl) {
-        const songToAdd = masterLibrary.find(song => song.url === songUrl);
-        const isAlreadyInPlaylist = playlist.some(song => song.url === songUrl);
+    function addSongToPlaylist(songId) {
+        const songToAdd = masterLibrary.find(song => song.id === songId);
+        const isAlreadyInPlaylist = playlist.some(song => song.id === songId);
         if (songToAdd && !isAlreadyInPlaylist) {
             playlist.push(songToAdd);
             savePlaylistToStorage();
             renderPlaylist();
         }
     }
+
     function removeSongFromPlaylist(index) {
         const wasPlaying = index === currentSongIndex;
         playlist.splice(index, 1);
@@ -299,19 +332,25 @@
             currentSongIndex--;
         }
     }
+
     function loadPlaylistFromStorage() {
-        const savedPlaylist = JSON.parse(localStorage.getItem('userPlaylist'));
-        if (savedPlaylist && Array.isArray(savedPlaylist)) { playlist = savedPlaylist; }
+        const savedIds = JSON.parse(localStorage.getItem('userPlaylistIds'));
+        if (savedIds && Array.isArray(savedIds)) {
+            // Rebuild the playlist from the master library using the saved IDs
+            playlist = savedIds
+                .map(id => masterLibrary.find(song => song.id === id))
+                .filter(song => song); // Filter out any songs that may no longer exist
+        }
     }
     function savePlaylistToStorage() {
-        localStorage.setItem('userPlaylist', JSON.stringify(playlist));
+        const playlistIds = playlist.map(song => song.id);
+        localStorage.setItem('userPlaylistIds', JSON.stringify(playlistIds));
     }
     
-    // ⭐ UPDATED: renderPlaylist now includes the drag handle
     function renderPlaylist() {
         playlistElement.innerHTML = '';
         if (playlist.length === 0) {
-            playlistElement.innerHTML = `<div id="playlist-loading" style="text-align: center; padding: 20px; color: var(--text-secondary);">Your playlist is empty.</div>`;
+            playlistElement.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Your playlist is empty.</div>`;
             return;
         }
         playlist.forEach((song, index) => {
@@ -332,8 +371,8 @@
     }
     
     function renderSearchResults(results) {
-        const libraryLoading = document.getElementById('library-loading');
         searchResultsElement.innerHTML = '';
+        const libraryLoading = document.getElementById('library-loading');
         if (results.length === 0 && masterLibrary.length > 0) {
             searchResultsElement.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No songs match your search.</div>`;
             return;
@@ -347,7 +386,7 @@
                     <div class="song-item-title">${song.title}</div>
                     <div class="song-item-artist">${song.artist}</div>
                 </div>
-                <button class="action-btn add-btn" data-url="${song.url}">➕</button>
+                <button class="action-btn add-btn" data-id="${song.id}">➕</button>
             `;
             searchResultsElement.appendChild(listItem);
         });
@@ -407,36 +446,51 @@
         }
     }
 
+    // ⭐ NEW/UPDATED: Import, Export, and Download Functions
     function exportPlaylist() {
         if (playlist.length === 0) {
-            alert("Your playlist is empty. Add some songs before exporting.");
+            alert("Your playlist is empty. Add songs before exporting.");
             return;
         }
-        const songIndices = playlist.map(songInPlaylist => masterLibrary.findIndex(songInLibrary => songInLibrary.url === songInPlaylist.url));
-        const validIndices = songIndices.filter(index => index !== -1);
-        const code = validIndices.join('-');
-        prompt("Here is your playlist code. Copy it and save it somewhere safe:", code);
+        // The code is now a comma-separated list of the unique song IDs.
+        const code = playlist.map(song => song.id).join(',');
+        prompt("Here is your unique playlist code. Copy and save it:", code);
     }
 
     function importPlaylist() {
-        const code = prompt("Please paste your playlist code here:");
+        const code = prompt("Please paste your playlist code:");
         if (!code) return;
         try {
-            const songIndices = code.split('-').map(str => parseInt(str, 10));
-            const newPlaylist = songIndices
-                .map(index => masterLibrary[index])
-                .filter(song => song);
+            const songIds = code.split(',');
+            const newPlaylist = songIds
+                .map(id => masterLibrary.find(song => song.id === id))
+                .filter(song => song); // Filter out any invalid IDs
+
             if (newPlaylist.length > 0) {
                 playlist = newPlaylist;
                 savePlaylistToStorage();
                 renderPlaylist();
                 alert(`Successfully imported ${newPlaylist.length} songs!`);
             } else {
-                alert("Could not import playlist. The code might be invalid or outdated.");
+                alert("Could not import playlist. The code is invalid or outdated.");
             }
         } catch (error) {
-            alert("An error occurred. Please check if the code is correct.");
+            alert("An error occurred. Please check the code format.");
         }
+    }
+
+    function downloadCurrentSong() {
+        if (currentSongIndex === -1 || !playlist[currentSongIndex]) {
+            alert("No song is currently playing.");
+            return;
+        }
+        const song = playlist[currentSongIndex];
+        const link = document.createElement('a');
+        link.href = song.url;
+        link.download = `${song.artist} - ${song.title}.${song.url.split('.').pop()}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     function setupEventListeners() {
@@ -466,12 +520,33 @@
         audioPlayer.addEventListener('ended', handleSongEnd);
         
         progressContainer.addEventListener('click', setProgress);
+        
+        // New Menu Listeners
+        mainMenuToggle.addEventListener('click', () => mainMenu.classList.toggle('hidden'));
+        playlistMenuToggle.addEventListener('click', () => playlistMenu.classList.toggle('hidden'));
+        
+        // Hide menus when clicking elsewhere
+        window.addEventListener('click', (e) => {
+            if (!mainMenu.contains(e.target) && !mainMenuToggle.contains(e.target)) {
+                mainMenu.classList.add('hidden');
+            }
+            if (!playlistMenu.contains(e.target) && !playlistMenuToggle.contains(e.target)) {
+                playlistMenu.classList.add('hidden');
+            }
+        });
+        
         darkModeToggle.addEventListener('click', () => {
             const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
             applyTheme(newTheme);
             localStorage.setItem('theme', newTheme);
         });
-        tabButtons.forEach(button => button.addEventListener('click', () => {
+        downloadSongBtn.addEventListener('click', downloadCurrentSong);
+        importBtn.addEventListener('click', importPlaylist);
+        exportBtn.addEventListener('click', exportPlaylist);
+        
+        tabButtons.forEach(button => button.addEventListener('click', (e) => {
+             // Stop the window-level click listener from firing and closing the menu instantly
+            e.stopPropagation();
             tabButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -483,13 +558,11 @@
             renderSearchResults(results);
         });
         searchResultsElement.addEventListener('click', (e) => {
-            if (e.target.classList.contains('add-btn')) { addSongToPlaylist(e.target.dataset.url); }
+            if (e.target.classList.contains('add-btn')) { addSongToPlaylist(e.target.dataset.id); }
         });
         playlistElement.addEventListener('click', (e) => {
             const target = e.target;
-            // Prevent click-to-play if the drag handle was the target
             if (target.classList.contains('drag-handle')) return;
-
             if (target.classList.contains('remove-btn')) {
                 removeSongFromPlaylist(parseInt(target.dataset.index, 10));
             } else {
@@ -497,9 +570,6 @@
                 if (li) { playSong(parseInt(li.dataset.index, 10)); }
             }
         });
-        
-        importBtn.addEventListener('click', importPlaylist);
-        exportBtn.addEventListener('click', exportPlaylist);
 
         if ('mediaSession' in navigator) {
             navigator.mediaSession.setActionHandler('play', () => audioPlayer.play());
@@ -539,7 +609,7 @@
             playlist = currentSongIndex !== -1 ? [...otherSongs.slice(0, currentSongIndex), currentSong, ...otherSongs.slice(currentSongIndex)] : otherSongs;
         } else {
             playlist = [...originalPlaylist];
-            if(currentSong) currentSongIndex = playlist.findIndex(s => s.url === currentSong.url);
+            if(currentSong) currentSongIndex = playlist.findIndex(s => s.id === currentSong.id);
         }
         renderPlaylist();
         updateActivePlaylistItem();
@@ -561,13 +631,12 @@
     }
     function applyTheme(theme) {
         document.body.classList.toggle('dark-mode', theme === 'dark');
-        darkModeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
+        darkModeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
     }
     
-    // ⭐ UPDATED: initializeSortable now uses the drag handle
     function initializeSortable() {
         new Sortable(playlistElement, {
-            handle: '.drag-handle', // Specify the drag handle
+            handle: '.drag-handle',
             animation: 150,
             ghostClass: 'sortable-ghost',
             onEnd: (evt) => {
