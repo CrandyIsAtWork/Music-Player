@@ -218,6 +218,8 @@
     const progressBar = document.getElementById('progress-bar');
     const currentTimeEl = document.getElementById('current-time');
     const totalDurationEl = document.getElementById('total-duration');
+    const importBtn = document.getElementById('import-playlist-btn');
+    const exportBtn = document.getElementById('export-playlist-btn');
 
     // State Variables
     let masterLibrary = [];
@@ -225,7 +227,7 @@
     let originalPlaylist = [];
     let currentSongIndex = -1;
     let isShuffled = false;
-    let repeatState = 'none'; // 'none', 'all', 'one'
+    let repeatState = 'none';
 
     async function initializePlayer() {
         applyTheme(localStorage.getItem('theme') || 'light');
@@ -308,9 +310,7 @@
             albumCoverElement.src = PLACEHOLDER_IMG;
             currentSongIndex = -1;
             updatePlayPauseIcon(false);
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.metadata = null;
-            }
+            if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
         } else if (index < currentSongIndex) {
             currentSongIndex--;
         }
@@ -367,7 +367,6 @@
         });
     }
 
-    // ⭐ UPDATED: playSong now updates the Media Session
     function playSong(index) {
         if (index < 0 || index >= playlist.length) return;
         currentSongIndex = index;
@@ -378,16 +377,12 @@
         songTitleElement.textContent = song.title;
         songArtistElement.textContent = song.artist;
         updateActivePlaylistItem();
-
-        // NEW: Update Media Session metadata
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: song.title,
                 artist: song.artist,
-                album: 'Musix Player', // You can add an album property to songs if you have it
-                artwork: [
-                    { src: song.cover, sizes: '512x512', type: 'image/png' },
-                ]
+                album: 'Musix Player',
+                artwork: [{ src: song.cover, sizes: '512x512', type: 'image/png' }]
             });
         }
     }
@@ -426,15 +421,43 @@
         }
     }
 
-    // ⭐ UPDATED: setupEventListeners now connects to the Media Session
+    function exportPlaylist() {
+        if (playlist.length === 0) {
+            alert("Your playlist is empty. Add some songs before exporting.");
+            return;
+        }
+        const songIndices = playlist.map(songInPlaylist => masterLibrary.findIndex(songInLibrary => songInLibrary.url === songInPlaylist.url));
+        const validIndices = songIndices.filter(index => index !== -1);
+        const code = validIndices.join('-');
+        prompt("Here is your playlist code. Copy it and save it somewhere safe:", code);
+    }
+
+    function importPlaylist() {
+        const code = prompt("Please paste your playlist code here:");
+        if (!code) return;
+        try {
+            const songIndices = code.split('-').map(str => parseInt(str, 10));
+            const newPlaylist = songIndices
+                .map(index => masterLibrary[index])
+                .filter(song => song);
+            if (newPlaylist.length > 0) {
+                playlist = newPlaylist;
+                savePlaylistToStorage();
+                renderPlaylist();
+                alert(`Successfully imported ${newPlaylist.length} songs!`);
+            } else {
+                alert("Could not import playlist. The code might be invalid or outdated.");
+            }
+        } catch (error) {
+            alert("An error occurred. Please check if the code is correct.");
+        }
+    }
+
     function setupEventListeners() {
         playPauseBtn.addEventListener('click', () => {
             if (audioPlayer.paused) {
-                if (currentSongIndex === -1 && playlist.length > 0) {
-                    playSong(0);
-                } else {
-                    audioPlayer.play();
-                }
+                if (currentSongIndex === -1 && playlist.length > 0) playSong(0);
+                else audioPlayer.play();
             } else {
                 audioPlayer.pause();
             }
@@ -447,21 +470,16 @@
 
         audioPlayer.addEventListener('play', () => {
             updatePlayPauseIcon(true);
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = "playing";
-            }
+            if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing";
         });
         audioPlayer.addEventListener('pause', () => {
             updatePlayPauseIcon(false);
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = "paused";
-            }
+            if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused";
         });
         audioPlayer.addEventListener('timeupdate', updateProgress);
         audioPlayer.addEventListener('ended', handleSongEnd);
         
         progressContainer.addEventListener('click', setProgress);
-
         darkModeToggle.addEventListener('click', () => {
             const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
             applyTheme(newTheme);
@@ -490,15 +508,16 @@
                 if (li) { playSong(parseInt(li.dataset.index, 10)); }
             }
         });
+        
+        importBtn.addEventListener('click', importPlaylist);
+        exportBtn.addEventListener('click', exportPlaylist);
 
-        // NEW: Set up Media Session action handlers
         if ('mediaSession' in navigator) {
             navigator.mediaSession.setActionHandler('play', () => audioPlayer.play());
             navigator.mediaSession.setActionHandler('pause', () => audioPlayer.pause());
             navigator.mediaSession.setActionHandler('previoustrack', playPrevious);
             navigator.mediaSession.setActionHandler('nexttrack', playNext);
         }
-
         initializeSortable();
     }
     
@@ -513,13 +532,9 @@
         playSong(prevIndex);
     }
     function handleSongEnd() {
-        if (repeatState === 'one') {
-            playSong(currentSongIndex);
-        } else if (currentSongIndex === playlist.length - 1 && repeatState === 'none') {
-            updatePlayPauseIcon(false);
-        } else {
-            playNext();
-        }
+        if (repeatState === 'one') playSong(currentSongIndex);
+        else if (currentSongIndex === playlist.length - 1 && repeatState === 'none') updatePlayPauseIcon(false);
+        else playNext();
     }
     function toggleShuffle(){
         isShuffled = !isShuffled;
@@ -535,14 +550,11 @@
             playlist = currentSongIndex !== -1 ? [...otherSongs.slice(0, currentSongIndex), currentSong, ...otherSongs.slice(currentSongIndex)] : otherSongs;
         } else {
             playlist = [...originalPlaylist];
-            if(currentSong) {
-                currentSongIndex = playlist.findIndex(s => s.url === currentSong.url);
-            }
+            if(currentSong) currentSongIndex = playlist.findIndex(s => s.url === currentSong.url);
         }
         renderPlaylist();
         updateActivePlaylistItem();
     }
-    
     function toggleRepeat() {
         if (repeatState === 'none') {
             repeatState = 'all';
@@ -558,15 +570,18 @@
             repeatBtn.textContent = '🔁';
         }
     }
-
     function applyTheme(theme) {
         document.body.classList.toggle('dark-mode', theme === 'dark');
         darkModeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
     }
+
+    // ⭐ THIS IS THE UPDATED FUNCTION ⭐
     function initializeSortable() {
         new Sortable(playlistElement, {
             animation: 150,
             ghostClass: 'sortable-ghost',
+            delay: 200, // Time in ms to wait before starting drag
+            delayOnTouchOnly: true, // Only delay for touch events, not mouse
             onEnd: (evt) => {
                 const [movedItem] = playlist.splice(evt.oldIndex, 1);
                 playlist.splice(evt.newIndex, 0, movedItem);
