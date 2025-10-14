@@ -53,13 +53,29 @@
             border-radius: 16px; 
             box-shadow: 0 8px 24px var(--shadow-color); 
             text-align: center;
-            transition: background-color 0.3s, max-width 0.3s ease;
+            transition: background-color 0.3s, max-width 0.3s ease, padding 0.3s ease, border-color 0.3s ease;
+            border: 2px solid transparent; /* Make space for RGB border */
+        }
+
+        /* ⭐ NEW: RGB Animation and Styles */
+        @keyframes rgb-cycle {
+            0%   { --primary-color: hsl(0, 90%, 55%); }
+            100% { --primary-color: hsl(360, 90%, 55%); }
+        }
+
+        /* When rgb-mode is active, animate the --primary-color variable itself */
+        body.rgb-mode {
+            animation: rgb-cycle 5s linear infinite;
+        }
+
+        /* The border will now use the animated variable */
+        body.rgb-mode #player-container {
+            border-color: var(--primary-color);
         }
 
         .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; }
         h1 { margin: 0; font-size: 1.5em; color: var(--primary-color); }
         
-        /* ⭐ NEW: Styles for the "three dots" menus */
         .menu-container { position: relative; }
         .menu-toggle { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); padding: 5px 10px; }
         .dropdown-menu { position: absolute; top: 100%; right: 0; background-color: var(--card-bg); border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color); z-index: 10; overflow: hidden; min-width: 180px; border: 1px solid var(--border-color); }
@@ -131,6 +147,10 @@
                         <span id="dark-mode-icon">☀️</span>
                         <span>Toggle Theme</span>
                     </button>
+                    <button id="rgb-toggle-btn" class="menu-item">
+                        <span>🎨</span>
+                        <span>Toggle RGB</span>
+                    </button>
                     <button id="download-song-btn" class="menu-item">
                         <span>📥</span>
                         <span>Download Song</span>
@@ -181,8 +201,7 @@
             </div>
         </div>
         <div id="playlist-tab" class="tab-content active">
-            <ul id="playlist" class="song-list">
-                </ul>
+            <ul id="playlist" class="song-list"></ul>
         </div>
         <div id="search-tab" class="tab-content">
             <input type="text" id="search-bar" placeholder="Search all songs...">
@@ -219,7 +238,6 @@
     const progressBar = document.getElementById('progress-bar');
     const currentTimeEl = document.getElementById('current-time');
     const totalDurationEl = document.getElementById('total-duration');
-    // New Menu Elements
     const mainMenuToggle = document.getElementById('main-menu-toggle');
     const mainMenu = document.getElementById('main-menu');
     const playlistMenuToggle = document.getElementById('playlist-menu-toggle');
@@ -229,6 +247,9 @@
     const downloadSongBtn = document.getElementById('download-song-btn');
     const importBtn = document.getElementById('import-playlist-btn');
     const exportBtn = document.getElementById('export-playlist-btn');
+    // ⭐ NEW: RGB Button Element
+    const rgbToggleBtn = document.getElementById('rgb-toggle-btn');
+
 
     // State Variables
     let masterLibrary = [];
@@ -239,7 +260,10 @@
     let repeatState = 'none';
 
     async function initializePlayer() {
+        // ⭐ UPDATED: Load RGB mode from storage
         applyTheme(localStorage.getItem('theme') || 'light');
+        applyRgbMode(localStorage.getItem('rgbMode') === 'true');
+        
         await fetchMasterLibrary();
         loadPlaylistFromStorage();
         renderSearchResults(masterLibrary);
@@ -269,10 +293,8 @@
         }
     }
 
-    // ⭐ UPDATED: getSongMetadata now creates a unique ID for each song
     function getSongMetadata(file) {
         return new Promise((resolve) => {
-            // The unique ID is the Base64 encoded filename without its extension.
             const uniqueId = btoa(file.name.replace(/\.[^/.]+$/, ''));
             const createDefaultMetadata = (fileName) => ({
                 id: uniqueId,
@@ -336,10 +358,9 @@
     function loadPlaylistFromStorage() {
         const savedIds = JSON.parse(localStorage.getItem('userPlaylistIds'));
         if (savedIds && Array.isArray(savedIds)) {
-            // Rebuild the playlist from the master library using the saved IDs
             playlist = savedIds
                 .map(id => masterLibrary.find(song => song.id === id))
-                .filter(song => song); // Filter out any songs that may no longer exist
+                .filter(song => song);
         }
     }
     function savePlaylistToStorage() {
@@ -446,13 +467,11 @@
         }
     }
 
-    // ⭐ NEW/UPDATED: Import, Export, and Download Functions
     function exportPlaylist() {
         if (playlist.length === 0) {
             alert("Your playlist is empty. Add songs before exporting.");
             return;
         }
-        // The code is now a comma-separated list of the unique song IDs.
         const code = playlist.map(song => song.id).join(',');
         prompt("Here is your unique playlist code. Copy and save it:", code);
     }
@@ -464,8 +483,7 @@
             const songIds = code.split(',');
             const newPlaylist = songIds
                 .map(id => masterLibrary.find(song => song.id === id))
-                .filter(song => song); // Filter out any invalid IDs
-
+                .filter(song => song); 
             if (newPlaylist.length > 0) {
                 playlist = newPlaylist;
                 savePlaylistToStorage();
@@ -521,11 +539,9 @@
         
         progressContainer.addEventListener('click', setProgress);
         
-        // New Menu Listeners
         mainMenuToggle.addEventListener('click', () => mainMenu.classList.toggle('hidden'));
         playlistMenuToggle.addEventListener('click', () => playlistMenu.classList.toggle('hidden'));
         
-        // Hide menus when clicking elsewhere
         window.addEventListener('click', (e) => {
             if (!mainMenu.contains(e.target) && !mainMenuToggle.contains(e.target)) {
                 mainMenu.classList.add('hidden');
@@ -540,12 +556,18 @@
             applyTheme(newTheme);
             localStorage.setItem('theme', newTheme);
         });
+        
+        // ⭐ NEW: RGB Toggle Event Listener
+        rgbToggleBtn.addEventListener('click', () => {
+            const isRgb = document.body.classList.toggle('rgb-mode');
+            localStorage.setItem('rgbMode', isRgb);
+        });
+
         downloadSongBtn.addEventListener('click', downloadCurrentSong);
         importBtn.addEventListener('click', importPlaylist);
         exportBtn.addEventListener('click', exportPlaylist);
         
         tabButtons.forEach(button => button.addEventListener('click', (e) => {
-             // Stop the window-level click listener from firing and closing the menu instantly
             e.stopPropagation();
             tabButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
@@ -629,6 +651,16 @@
             repeatBtn.textContent = '🔁';
         }
     }
+    
+    // ⭐ NEW: RGB Toggle Function
+    function applyRgbMode(isRgb) {
+        if (isRgb) {
+            document.body.classList.add('rgb-mode');
+        } else {
+            document.body.classList.remove('rgb-mode');
+        }
+    }
+    
     function applyTheme(theme) {
         document.body.classList.toggle('dark-mode', theme === 'dark');
         darkModeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
