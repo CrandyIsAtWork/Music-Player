@@ -57,36 +57,39 @@
         border: 2px solid transparent;
     }
 
-    /* ⭐ FIX: The Corrected RGB Animation */
+    /* ⭐ FIX: The Corrected and Separated RGB Rules */
     @keyframes rgb-hue-rotate {
-        from {
-            --hue: 0;
-        }
-        to {
-            --hue: 360;
-        }
+        from { --hue: 0; }
+        to   { --hue: 360; }
     }
 
-    /* When rgb-mode is active, run the hue animation */
     body.rgb-mode {
         animation: rgb-hue-rotate 5s linear infinite;
     }
 
-    /* The border will now use the animated --hue variable to build its color */
-    body.rgb-mode #player-container {
-        border-color: hsl(var(--hue, 0), 90%, 55%);
-    }
-
-    /* All elements using --primary-color will now be dynamic in RGB mode */
+    /* Rule 1: Apply to elements that change TEXT color */
     body.rgb-mode h1,
-    body.rgb-mode .tab-btn.active,
-    body.rgb-mode #progress-bar,
     body.rgb-mode .control-btn:hover,
     body.rgb-mode .control-btn.active {
         color: hsl(var(--hue, 0), 90%, 55%);
-        border-bottom-color: hsl(var(--hue, 0), 90%, 55%); /* For the active tab */
-        background-color: hsl(var(--hue, 0), 90%, 55%); /* For the progress bar */
     }
+
+    /* Rule 2: Apply to the active tab (changes text AND border) */
+    body.rgb-mode .tab-btn.active {
+        color: hsl(var(--hue, 0), 90%, 55%);
+        border-bottom-color: hsl(var(--hue, 0), 90%, 55%);
+    }
+
+    /* Rule 3: Apply to elements that change BACKGROUND color */
+    body.rgb-mode #progress-bar {
+        background-color: hsl(var(--hue, 0), 90%, 55%);
+    }
+
+    /* Rule 4: Apply to the main container's BORDER color */
+    body.rgb-mode #player-container {
+        border-color: hsl(var(--hue, 0), 90%, 55%);
+    }
+    /* End of Fix */
     
     .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; }
     h1 { margin: 0; font-size: 1.5em; color: var(--primary-color); }
