@@ -45,7 +45,6 @@
             transition: background-color 0.3s, color 0.3s;
         }
         
-        /* Default mobile layout */
         #player-container { 
             max-width: 450px; 
             margin: auto; 
@@ -78,8 +77,12 @@
         .control-btn.active { color: var(--primary-color); }
 
         audio { display: none; }
+        
+        .playlist-management { display: flex; gap: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .manage-btn { flex: 1; padding: 8px; font-size: 0.9em; font-weight: 500; border-radius: 6px; border: 1px solid var(--primary-color); background-color: transparent; color: var(--primary-color); cursor: pointer; transition: background-color 0.2s, color 0.2s; }
+        .manage-btn:hover { background-color: var(--primary-color); color: var(--card-bg); }
 
-        .tab-nav { display: flex; border-bottom: 1px solid var(--border-color); margin-top: 20px; }
+        .tab-nav { display: flex; border-bottom: 1px solid var(--border-color); }
         .tab-btn { flex: 1; padding: 10px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; color: var(--text-secondary); font-size: 1em; font-weight: 500;}
         .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
         .tab-content { display: none; }
@@ -88,7 +91,7 @@
         #search-bar { width: 100%; box-sizing: border-box; padding: 10px; margin: 15px 0; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--hover-bg); color: var(--text-color); }
 
         .song-list { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; text-align: left; }
-        .song-list li { display: flex; align-items: center; gap: 15px; padding: 10px; user-select: none; transition: background-color 0.2s; border-bottom: 1px solid var(--border-color); }
+        .song-list li { display: flex; align-items: center; gap: 15px; padding: 10px; user-select: none; transition: background-color 0.2s; border-bottom: 1px solid var(--border-color); cursor: pointer; } /* Set default cursor to pointer */
         .song-list li:hover { background-color: var(--hover-bg); }
         .song-list li img { width: 45px; height: 45px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
         .song-list li .song-item-info { flex-grow: 1; min-width: 0; }
@@ -96,44 +99,27 @@
         .song-list li .song-item-artist { font-size: 0.9em; color: var(--text-secondary); }
         .song-list li .action-btn { font-size: 1.5em; cursor: pointer; background: none; border: none; color: var(--text-secondary); padding: 5px; }
         .song-list li.active { background-color: var(--active-bg); }
-        #playlist.song-list li { cursor: grab; }
+        
+        /* ⭐ NEW: Styles for the drag handle */
+        .drag-handle {
+            font-size: 1.5em;
+            color: var(--border-color);
+            cursor: grab;
+            padding-right: 5px;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
         .sortable-ghost { background-color: var(--primary-color); opacity: 0.5; }
 
-        /* ⭐ NEW: Styles for wider screens (Desktops/Tablets) ⭐ */
         @media (min-width: 768px) {
-            #player-container {
-                max-width: 900px;
-                display: flex;
-                gap: 30px;
-                text-align: left;
-            }
-
-            .player-column {
-                flex: 1;
-                text-align: center;
-            }
-
-            .list-column {
-                flex: 1.2;
-                display: flex;
-                flex-direction: column;
-            }
-
-            #album-cover {
-                width: 100%;
-                max-width: none;
-            }
-
-            .tab-content {
-                flex-grow: 1;
-                display: flex;
-                flex-direction: column;
-            }
-            
-            .song-list {
-                max-height: none;
-                flex-grow: 1;
-            }
+            #player-container { max-width: 900px; display: flex; gap: 30px; text-align: left; }
+            .player-column { flex: 1; text-align: center; }
+            .list-column { flex: 1.2; display: flex; flex-direction: column; }
+            #album-cover { width: 100%; max-width: none; }
+            .tab-content { flex-grow: 1; display: flex; flex-direction: column; }
+            .song-list { max-height: none; flex-grow: 1; }
         }
     </style>
 </head>
@@ -145,15 +131,12 @@
             <h1>Musix</h1>
             <button id="dark-mode-toggle">☀️</button>
         </div>
-
         <img id="album-cover" src="images/placeholder.png" alt="Album Cover">
         <div id="song-info">
             <p id="song-title">Select a song</p>
             <p id="song-artist">Artist</p>
         </div>
-        
         <audio id="audio-player"></audio>
-
         <div id="progress-container">
             <div id="progress-bar"></div>
         </div>
@@ -161,7 +144,6 @@
             <span id="current-time">0:00</span>
             <span id="total-duration">0:00</span>
         </div>
-
         <div id="player-controls">
             <button id="shuffle-btn" class="control-btn">🔀</button>
             <button id="prev-btn" class="control-btn">⏮️</button>
@@ -172,16 +154,18 @@
     </div>
 
     <div class="list-column">
+        <div class="playlist-management">
+            <button id="import-playlist-btn" class="manage-btn">Import 📥</button>
+            <button id="export-playlist-btn" class="manage-btn">Export 📤</button>
+        </div>
         <div class="tab-nav">
             <button class="tab-btn active" data-tab="playlist-tab">Playlist</button>
             <button class="tab-btn" data-tab="search-tab">Add Songs</button>
         </div>
-
         <div id="playlist-tab" class="tab-content active">
             <ul id="playlist" class="song-list">
                 </ul>
         </div>
-        
         <div id="search-tab" class="tab-content">
             <input type="text" id="search-bar" placeholder="Search all songs...">
             <ul id="search-results" class="song-list">
@@ -323,6 +307,7 @@
         localStorage.setItem('userPlaylist', JSON.stringify(playlist));
     }
     
+    // ⭐ UPDATED: renderPlaylist now includes the drag handle
     function renderPlaylist() {
         playlistElement.innerHTML = '';
         if (playlist.length === 0) {
@@ -333,6 +318,7 @@
             const listItem = document.createElement('li');
             listItem.dataset.index = index;
             listItem.innerHTML = `
+                <span class="drag-handle">≡</span>
                 <img src="${song.cover}" alt="Cover">
                 <div class="song-item-info">
                     <div class="song-item-title">${song.title}</div>
@@ -501,6 +487,9 @@
         });
         playlistElement.addEventListener('click', (e) => {
             const target = e.target;
+            // Prevent click-to-play if the drag handle was the target
+            if (target.classList.contains('drag-handle')) return;
+
             if (target.classList.contains('remove-btn')) {
                 removeSongFromPlaylist(parseInt(target.dataset.index, 10));
             } else {
@@ -574,14 +563,13 @@
         document.body.classList.toggle('dark-mode', theme === 'dark');
         darkModeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
     }
-
-    // ⭐ THIS IS THE UPDATED FUNCTION ⭐
+    
+    // ⭐ UPDATED: initializeSortable now uses the drag handle
     function initializeSortable() {
         new Sortable(playlistElement, {
+            handle: '.drag-handle', // Specify the drag handle
             animation: 150,
             ghostClass: 'sortable-ghost',
-            delay: 200, // Time in ms to wait before starting drag
-            delayOnTouchOnly: true, // Only delay for touch events, not mouse
             onEnd: (evt) => {
                 const [movedItem] = playlist.splice(evt.oldIndex, 1);
                 playlist.splice(evt.newIndex, 0, movedItem);
@@ -601,4 +589,6 @@
 
     initializePlayer();
 </script>
+
+</body>
 </html>
