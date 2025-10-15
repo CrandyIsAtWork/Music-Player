@@ -91,19 +91,24 @@
         #song-info { margin-bottom: 15px; min-height: 50px; }
         #song-title { font-size: 1.4em; font-weight: bold; color: var(--text-color); margin: 0; }
         #song-artist { font-size: 1em; color: var(--text-secondary); margin: 5px 0 0; }
+        
+        #visualizer {
+            width: 100%;
+            height: 60px;
+            margin-bottom: 20px;
+        }
 
-        #progress-container { width: 100%; background-color: var(--progress-bg); border-radius: 5px; cursor: pointer; margin: 20px 0 10px; }
+        #progress-container { width: 100%; background-color: var(--progress-bg); border-radius: 5px; cursor: pointer; margin: 10px 0; }
         #progress-bar { width: 0%; height: 6px; background-color: var(--primary-color); border-radius: 5px; }
         #time-container { display: flex; justify-content: space-between; font-size: 0.8em; color: var(--text-secondary); }
 
-        .main-controls-container { display: flex; align-items: center; gap: 15px; margin: 10px 0; }
+        .main-controls-container { display: flex; align-items: center; gap: 15px; margin-top: 10px; }
         #player-controls { display: flex; justify-content: center; align-items: center; gap: 15px; flex-grow: 1; }
         .control-btn { background: none; border: none; font-size: 1.8em; cursor: pointer; color: var(--text-secondary); transition: color 0.2s; }
         #play-pause-btn { font-size: 2.8em; color: var(--text-color); }
         .control-btn:hover { color: var(--primary-color); }
         .control-btn.active { color: var(--primary-color); }
 
-        /* ⭐ NEW: Volume Control Styles */
         #volume-controls { display: flex; align-items: center; gap: 8px; width: 120px; }
         #volume-icon { font-size: 1.5em; cursor: pointer; color: var(--text-secondary); }
         #volume-slider { flex-grow: 1; -webkit-appearance: none; appearance: none; width: 100%; height: 5px; background: var(--progress-bg); border-radius: 5px; outline: none; }
@@ -174,7 +179,10 @@
             <p id="song-title">Select a song</p>
             <p id="song-artist">Artist</p>
         </div>
-        <audio id="audio-player"></audio>
+        <audio id="audio-player" crossorigin="anonymous"></audio>
+        
+        <canvas id="visualizer"></canvas>
+
         <div id="progress-container">
             <div id="progress-bar"></div>
         </div>
@@ -267,6 +275,14 @@
     const rgbToggleBtn = document.getElementById('rgb-toggle-btn');
     const volumeIcon = document.getElementById('volume-icon');
     const volumeSlider = document.getElementById('volume-slider');
+    const visualizerCanvas = document.getElementById('visualizer');
+    const canvasCtx = visualizerCanvas.getContext('2d');
+    
+    // Web Audio API variables
+    let audioCtx;
+    let analyser;
+    let source;
+    let animationFrameId;
 
     // State Variables
     let masterLibrary = [];
@@ -291,6 +307,43 @@
         setupEventListeners();
     }
 
+    function initializeAudioContext() {
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        try {
+            source = audioCtx.createMediaElementSource(audioPlayer);
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            analyser.fftSize = 128;
+        } catch (e) {
+            console.error("Error setting up audio context:", e);
+        }
+    }
+
+    function drawVisualizer() {
+        animationFrameId = requestAnimationFrame(drawVisualizer);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+
+        canvasCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+
+        const barWidth = (visualizerCanvas.width / bufferLength) * 1.5;
+        let barHeight;
+        let x = 0;
+
+        const primaryColor = getComputedStyle(document.body).getPropertyValue('--primary-color');
+        canvasCtx.fillStyle = primaryColor.trim();
+
+        for (let i = 0; i < bufferLength; i++) {
+            barHeight = dataArray[i] / 2;
+            canvasCtx.fillRect(x, visualizerCanvas.height - barHeight, barWidth, barHeight);
+            x += barWidth + 2;
+        }
+    }
+
     async function fetchMasterLibrary() {
         const libraryLoading = document.getElementById('library-loading');
         const apiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${MUSIC_FOLDER_PATH}`;
@@ -312,12 +365,10 @@
             libraryLoading.textContent = 'Error loading library.';
         }
     }
-
-    // ⭐ THIS IS THE CORRECTED FUNCTION ⭐
+    
     function getSongMetadata(file) {
         return new Promise((resolve) => {
             const createDefaultMetadata = (fileName) => ({
-                // The unique ID is created here, safely.
                 id: btoa(fileName.replace(/\.[^/.]+$/, '')),
                 title: fileName.replace(/\.[^/.]+$/, "").replace(/_/g, ' '), 
                 artist: 'Unknown Artist', 
@@ -342,7 +393,6 @@
                         for (let i = 0; i < data.length; i++) { base64String += String.fromCharCode(data[i]); }
                         cover = `data:${format};base64,${window.btoa(base64String)}`;
                     }
-                    // Resolve with full metadata, creating the ID here
                     resolve({ 
                         id: btoa(file.name.replace(/\.[^/.]+$/, '')),
                         title: tags.title || createDefaultMetadata(file.name).title, 
@@ -355,7 +405,7 @@
             });
         });
     }
-    
+
     function addSongToPlaylist(songId) {
         const songToAdd = masterLibrary.find(song => song.id === songId);
         const isAlreadyInPlaylist = playlist.some(song => song.id === songId);
@@ -544,7 +594,7 @@
     function setVolume(level) {
         audioPlayer.volume = level;
         localStorage.setItem('playerVolume', level);
-        updateVolumeUI(); // Ensure UI updates immediately
+        updateVolumeUI();
     }
 
     function updateVolumeUI() {
@@ -564,12 +614,15 @@
             lastVolume = audioPlayer.volume;
             setVolume(0);
         } else {
-            setVolume(lastVolume > 0 ? lastVolume : 1); // Restore to last volume or full if last was 0
+            setVolume(lastVolume > 0 ? lastVolume : 1);
         }
     }
 
     function setupEventListeners() {
         playPauseBtn.addEventListener('click', () => {
+            if (!audioCtx) {
+                initializeAudioContext();
+            }
             if (audioPlayer.paused) {
                 if (currentSongIndex === -1 && playlist.length > 0) playSong(0);
                 else audioPlayer.play();
@@ -586,10 +639,13 @@
         audioPlayer.addEventListener('play', () => {
             updatePlayPauseIcon(true);
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing";
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            drawVisualizer();
         });
         audioPlayer.addEventListener('pause', () => {
             updatePlayPauseIcon(false);
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused";
+            cancelAnimationFrame(animationFrameId);
         });
         audioPlayer.addEventListener('timeupdate', updateProgress);
         audioPlayer.addEventListener('ended', handleSongEnd);
@@ -679,9 +735,14 @@
         }
     }
     function handleSongEnd() {
-        if (repeatState === 'one') playSong(currentSongIndex);
-        else if (currentSongIndex === playlist.length - 1 && repeatState === 'none') updatePlayPauseIcon(false);
-        else playNext();
+        if (repeatState === 'one') {
+            playSong(currentSongIndex);
+        } else if (currentSongIndex === playlist.length - 1 && repeatState === 'none') {
+            updatePlayPauseIcon(false);
+            cancelAnimationFrame(animationFrameId); // Stop visualizer
+        } else {
+            playNext();
+        }
     }
     
     function toggleShuffle() {
@@ -730,11 +791,7 @@
     }
     
     function applyRgbMode(isRgb) {
-        if (isRgb) {
-            document.body.classList.add('rgb-mode');
-        } else {
-            document.body.classList.remove('rgb-mode');
-        }
+        document.body.classList.toggle('rgb-mode', isRgb);
     }
     
     function applyTheme(theme) {
