@@ -11,6 +11,13 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <style>
+    /* ⭐ NEW: Explicitly define --hue as an animatable integer */
+    @property --hue {
+      syntax: '<integer>';
+      inherits: true;
+      initial-value: 0;
+    }
+
     :root {
         --bg-color: #f0f2f5;
         --card-bg: #ffffff;
@@ -57,25 +64,38 @@
         border: 2px solid transparent;
     }
 
-    /* ⭐ FIX: The Definitive RGB Animation Logic */
+    /* ⭐ UPDATED: The Corrected RGB Animation Logic */
     @keyframes rgb-hue-rotate {
-        from { --hue: 0; }
-        to   { --hue: 360; }
+        to {
+            --hue: 360;
+        }
     }
 
-    /* When rgb-mode is active:
-       1. Run the animation to cycle the --hue variable.
-       2. Redefine --primary-color to be built from the animated --hue.
-       Now, any element that uses var(--primary-color) will automatically be animated.
-    */
     body.rgb-mode {
         animation: rgb-hue-rotate 5s linear infinite;
-        --primary-color: hsl(var(--hue, 0), 90%, 55%);
     }
 
-    /* This rule handles the container border separately */
+    /* Rule 1: Apply to elements that change TEXT color */
+    body.rgb-mode h1,
+    body.rgb-mode .control-btn:hover,
+    body.rgb-mode .control-btn.active {
+        color: hsl(var(--hue), 90%, 55%);
+    }
+
+    /* Rule 2: Apply to the active tab (changes text AND border) */
+    body.rgb-mode .tab-btn.active {
+        color: hsl(var(--hue), 90%, 55%);
+        border-bottom-color: hsl(var(--hue), 90%, 55%);
+    }
+
+    /* Rule 3: Apply to elements that change BACKGROUND color */
+    body.rgb-mode #progress-bar {
+        background-color: hsl(var(--hue), 90%, 55%);
+    }
+
+    /* Rule 4: Apply to the main container's BORDER color */
     body.rgb-mode #player-container {
-        border-color: var(--primary-color);
+        border-color: hsl(var(--hue), 90%, 55%);
     }
     /* End of Fix */
     
