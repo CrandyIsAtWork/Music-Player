@@ -273,7 +273,6 @@
     const downloadSongBtn = document.getElementById('download-song-btn');
     const importBtn = document.getElementById('import-playlist-btn');
     const exportBtn = document.getElementById('export-playlist-btn');
-    // ⭐ NEW: RGB Button Element
     const rgbToggleBtn = document.getElementById('rgb-toggle-btn');
 
 
@@ -286,7 +285,6 @@
     let repeatState = 'none';
 
     async function initializePlayer() {
-        // ⭐ UPDATED: Load RGB mode from storage
         applyTheme(localStorage.getItem('theme') || 'light');
         applyRgbMode(localStorage.getItem('rgbMode') === 'true');
         
@@ -583,7 +581,6 @@
             localStorage.setItem('theme', newTheme);
         });
         
-        // ⭐ NEW: RGB Toggle Event Listener
         rgbToggleBtn.addEventListener('click', () => {
             const isRgb = document.body.classList.toggle('rgb-mode');
             localStorage.setItem('rgbMode', isRgb);
@@ -643,25 +640,45 @@
         else if (currentSongIndex === playlist.length - 1 && repeatState === 'none') updatePlayPauseIcon(false);
         else playNext();
     }
-    function toggleShuffle(){
+    
+    // ⭐ THIS IS THE UPDATED FUNCTION ⭐
+    function toggleShuffle() {
         isShuffled = !isShuffled;
         shuffleBtn.classList.toggle('active', isShuffled);
         const currentSong = playlist[currentSongIndex];
+
         if (isShuffled) {
-            originalPlaylist = [...playlist];
-            const otherSongs = playlist.filter((_, i) => i !== currentSongIndex);
-            for (let i = otherSongs.length - 1; i > 0; i--) {
+            originalPlaylist = [...playlist]; // Save the current order
+
+            // Shuffle the entire playlist using the Fisher-Yates algorithm
+            for (let i = playlist.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [otherSongs[i], otherSongs[j]] = [otherSongs[j], otherSongs[i]];
+                [playlist[i], playlist[j]] = [playlist[j], playlist[i]];
             }
-            playlist = currentSongIndex !== -1 ? [...otherSongs.slice(0, currentSongIndex), currentSong, ...otherSongs.slice(currentSongIndex)] : otherSongs;
-        } else {
-            playlist = [...originalPlaylist];
-            if(currentSong) currentSongIndex = playlist.findIndex(s => s.id === currentSong.id);
+
+            // If a song was playing, find it and move it to the top
+            if (currentSong) {
+                const newIndex = playlist.findIndex(song => song.id === currentSong.id);
+                if (newIndex !== -1) {
+                    // Remove the song from its new random position
+                    const [songToMove] = playlist.splice(newIndex, 1);
+                    // Add it to the very beginning of the playlist
+                    playlist.unshift(songToMove);
+                }
+                // The current song is now guaranteed to be at index 0
+                currentSongIndex = 0;
+            }
+        } else { // Turning shuffle off
+            playlist = [...originalPlaylist]; // Restore the original order
+            // Find the current song's original index
+            if (currentSong) {
+                currentSongIndex = playlist.findIndex(s => s.id === currentSong.id);
+            }
         }
         renderPlaylist();
         updateActivePlaylistItem();
     }
+
     function toggleRepeat() {
         if (repeatState === 'none') {
             repeatState = 'all';
@@ -678,7 +695,6 @@
         }
     }
     
-    // ⭐ NEW: RGB Toggle Function
     function applyRgbMode(isRgb) {
         if (isRgb) {
             document.body.classList.add('rgb-mode');
@@ -716,6 +732,5 @@
 
     initializePlayer();
 </script>
-
 </body>
 </html>
