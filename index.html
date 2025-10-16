@@ -9,6 +9,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script defer src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 
     <style>
         @property --hue {
@@ -140,6 +141,17 @@
 
         .sortable-ghost { background-color: var(--primary-color); opacity: 0.5; }
 
+google-cast-launcher {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            --cast-button-color: var(--text-color);
+        }
+
+        #cast-menu-item {
+            cursor: default;
+        }
+        
         @media (min-width: 768px) {
             #player-container { max-width: 900px; display: flex; gap: 30px; text-align: left; }
             .player-column { flex: 1; text-align: center; }
@@ -171,7 +183,11 @@
                         <span>📥</span>
                         <span>Download Song</span>
                     </button>
-                </div>
+                    <div id="cast-menu-item" class="menu-item">
+                        <google-cast-launcher id="cast-button"></google-cast-launcher>
+                        <label for="cast-button" style="cursor: pointer; flex-grow: 1;">Cast</label>
+                    </div>
+                    </div>
             </div>
         </div>
         <img id="album-cover" src="images/placeholder.png" alt="Album Cover">
@@ -239,6 +255,18 @@
 
 <script>
     // --- CONFIGURATION ---
+    window['__onGCastApiAvailable'] = function(isAvailable) {
+      if (isAvailable) {
+        initializeCastApi();
+      }
+    };
+
+    function initializeCastApi() {
+      cast.framework.CastContext.getInstance().setOptions({
+        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+      });
+    }
     const GITHUB_USER = "CrandyIsAtWork";
     const GITHUB_REPO = "Music-Player";
     const MUSIC_FOLDER_PATH = "music";
@@ -493,12 +521,25 @@
         });
     }
 
+    // REPLACE the old playSong function with this one
     function playSong(index) {
         if (index < 0 || index >= playlist.length) return;
         currentSongIndex = index;
         const song = playlist[currentSongIndex];
-        audioPlayer.src = song.url;
-        audioPlayer.play();
+
+        const castSession = cast.framework.CastContext.getInstance().getCurrentSession();
+
+        if (castSession) {
+            // If we are casting, load the media on the remote device
+            loadMediaOnCast(song);
+            audioPlayer.pause(); // Pause local player
+        } else {
+            // Otherwise, play locally as before
+            audioPlayer.src = song.url;
+            audioPlayer.play();
+        }
+
+        // The rest of the function updates the UI as normal
         albumCoverElement.src = song.cover;
         songTitleElement.textContent = song.title;
         songArtistElement.textContent = song.artist;
@@ -511,6 +552,26 @@
                 artwork: [{ src: song.cover, sizes: '512x512', type: 'image/png' }]
             });
         }
+    }
+
+    // ADD THIS NEW FUNCTION
+    function loadMediaOnCast(song) {
+        const fullSongUrl = new URL(song.url, window.location.href).href;
+        const contentType = 'audio/' + song.url.split('.').pop();
+
+        const mediaInfo = new chrome.cast.media.MediaInfo(fullSongUrl, contentType);
+        mediaInfo.metadata = new chrome.cast.media.MusicTrackMediaMetadata();
+        mediaInfo.metadata.title = song.title;
+        mediaInfo.metadata.artist = song.artist;
+        mediaInfo.metadata.images = [new chrome.cast.Image(song.cover)];
+
+        const request = new chrome.cast.media.LoadRequest(mediaInfo);
+        const castSession = cast.framework.CastContext.getInstance().getCurrentSession();
+
+        castSession.loadMedia(request).then(
+            () => { console.log('Casting: ' + song.title); },
+            (errorCode) => { console.error('Cast Error: ' + errorCode); }
+        );
     }
 
     function updateActivePlaylistItem() {
